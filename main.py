@@ -21,6 +21,7 @@ Some functions are from the official evaluation script.
 '''
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = "cpu"
 
 class SQuADDataset(Dataset):
     def __init__(self, npz_file, num_steps, batch_size):
