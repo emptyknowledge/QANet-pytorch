@@ -16,6 +16,8 @@ import torch.cuda
 from torch.utils.data import Dataset
 import argparse
 
+from lib.DataSet import DataSet
+
 '''
 Some functions are from the official evaluation script.
 '''
@@ -248,19 +250,22 @@ def test(model, dataset, eval_file):
 def train_entry():
     from models import QANet
 
-    with open(config.word_emb_file, "r") as fh:
-        word_mat = np.array(json.load(fh), dtype=np.float32)
-    with open(config.char_emb_file, "r") as fh:
-        char_mat = np.array(json.load(fh), dtype=np.float32)
-    with open(config.train_eval_file, "r") as fh:
-        train_eval_file = json.load(fh)
-    with open(config.dev_eval_file, "r") as fh:
-        dev_eval_file = json.load(fh)
+    # with open(config.word_emb_file, "r") as fh:
+    #     word_mat = np.array(json.load(fh), dtype=np.float32)
+    # with open(config.char_emb_file, "r") as fh:
+    #     char_mat = np.array(json.load(fh), dtype=np.float32)
+    # with open(config.train_eval_file, "r") as fh:
+    #     train_eval_file = json.load(fh)
+    # with open(config.dev_eval_file, "r") as fh:
+    #     dev_eval_file = json.load(fh)
 
     print("Building model...")
 
-    train_dataset = SQuADDataset(config.train_record_file, config.num_steps, config.batch_size)
-    dev_dataset = SQuADDataset(config.dev_record_file, config.test_num_batches, config.batch_size)
+    train_dataset = DataSet()
+    dev_dataset = DataSet()
+
+    # train_dataset = SQuADDataset(config.train_record_file, config.num_steps, config.batch_size)
+    # dev_dataset = SQuADDataset(config.dev_record_file, config.test_num_batches, config.batch_size)
 
     lr = config.learning_rate
     base_lr = 1.0
