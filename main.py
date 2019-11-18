@@ -1,4 +1,4 @@
-import config
+import lib.config as config
 from math import log2
 import os
 import numpy as np
@@ -14,7 +14,10 @@ import torch.nn.functional as F
 import torch.optim as optim
 import torch.cuda
 from torch.utils.data import Dataset
+from lib.QADataSet import read_data
 import argparse
+
+from lib.QADataSet import QADataSet
 
 '''
 Some functions are from the official evaluation script.
@@ -167,10 +170,10 @@ def train(model, optimizer, scheduler, ema, dataset, start, length):
     losses = []
     for i in tqdm(range(start, length + start), total=length):
         optimizer.zero_grad()
-        Cwid, Ccid, Qwid, Qcid, y1, y2, ids = dataset[i]
-        Cwid, Ccid, Qwid, Qcid = Cwid.to(device), Ccid.to(device), Qwid.to(device), Qcid.to(device)
-        p1, p2 = model(Cwid, Ccid, Qwid, Qcid)
-        y1, y2 = y1.to(device), y2.to(device)
+        Cwid, Qwid, answer = dataset[i]
+        Cwid, Qwid = Cwid.to(device), Qwid.to(device)
+        p1, p2 = model(Cwid, Qwid)
+        y1, y2 = answer[0].to(device), answer[1].to(device)
         loss1 = F.nll_loss(p1, y1, reduction='mean')
         loss2 = F.nll_loss(p2, y2, reduction='mean')
         loss = (loss1 + loss2) / 2
@@ -246,27 +249,33 @@ def test(model, dataset, eval_file):
 
 
 def train_entry():
-    from models import QANet
+    from lib.models import QANet
 
-    with open(config.word_emb_file, "r") as fh:
-        word_mat = np.array(json.load(fh), dtype=np.float32)
-    with open(config.char_emb_file, "r") as fh:
-        char_mat = np.array(json.load(fh), dtype=np.float32)
-    with open(config.train_eval_file, "r") as fh:
-        train_eval_file = json.load(fh)
-    with open(config.dev_eval_file, "r") as fh:
-        dev_eval_file = json.load(fh)
+    # with open(config.word_emb_file, "r") as fh:
+    #     word_mat = np.array(json.load(fh), dtype=np.float32)
+    # with open(config.char_emb_file, "r") as fh:
+    #     char_mat = np.array(json.load(fh), dtype=np.float32)
+    # with open(config.train_eval_file, "r") as fh:
+    #     train_eval_file = json.load(fh)
+    # with open(config.dev_eval_file, "r") as fh:
+    #     dev_eval_file = json.load(fh)
 
     print("Building model...")
 
-    train_dataset = SQuADDataset(config.train_record_file, config.num_steps, config.batch_size)
-    dev_dataset = SQuADDataset(config.dev_record_file, config.test_num_batches, config.batch_size)
+    train_dataset = QADataSet()
+    dev_dataset = QADataSet()
+    train_eval_file = read_data(config.train_eval_file)
+    dev_eval_file = read_data(config.dev_eval_file)
+
+
+    # train_dataset = SQuADDataset(config.train_record_file, config.num_steps, config.batch_size)
+    # dev_dataset = SQuADDataset(config.dev_record_file, config.test_num_batches, config.batch_size)
 
     lr = config.learning_rate
     base_lr = 1.0
     warm_up = config.lr_warm_up_num
 
-    model = QANet(word_mat, char_mat).to(device)
+    model = QANet().to(device)
     ema = EMA(config.ema_decay)
     for name, p in model.named_parameters():
         if p.requires_grad: ema.set(name, p)

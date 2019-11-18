@@ -5,6 +5,7 @@
 # cython: language_level=3
 #
 
+import os
 import torch
 from pytorch_transformers import BertModel, BertTokenizer
 
@@ -20,6 +21,7 @@ class BertEmbedding():
     return self.tokenizer.encode(text)
 
   def encode2torch(self, text):
+    # print(f"Embedding text: {text}")
     encode_text = self.tokenizer.encode(text)
     return torch.Tensor(encode_text).long().view((1, -1))
 
