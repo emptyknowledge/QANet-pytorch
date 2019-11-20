@@ -8,7 +8,7 @@
 import re
 import os
 from tqdm import tqdm
-from my_py_toolkit.file.file_toolkit import get_file_paths, get_file_name, writejson
+from my_py_toolkit.file.file_toolkit import get_file_paths, get_file_name, writejson, readjson
 from my_py_toolkit.file.doc.doc_toolkit import get_paragraphs
 
 
@@ -17,7 +17,7 @@ def process_one_doc(file_path, data_max_len):
   paragraphs = get_paragraphs(file_path)
   cur_str = ""
   for para in paragraphs:
-    print(f"file_name: {get_file_name(file_path)}, The lenghth of paragraphs: {len(paragraphs)}")
+    # print(f"file_name: {get_file_name(file_path)}, The lenghth of paragraphs: {len(paragraphs)}")
     if len(cur_str) + len(para) < data_max_len - 1:
       cur_str += "\n" + para
     else:
@@ -48,13 +48,55 @@ def generate_date(dir_name, target_path, data_max_len):
       continue
     file_name = get_file_name(file)
     data = process_one_doc(file, data_max_len)
-    gene_data[file_name] = data
+    gene_data[file] = data
   
   writejson(gene_data, target_path)
 
-if __name__ == "__main__":
+def generate_unlabel_data(origin_data_path,
+                          target_path="./generate_data/unlabel_data",
+                          file_prefix="unlabel_data",
+                          data_num_each_file=100):
+  if not os.path.exists(target_path):
+    os.makedirs(target_path)
+  origin_data = readjson(origin_data_path)
+  file_index = 1
+  unlabel_data = []
+  keys = list(origin_data)
+  for index in tqdm(range(0, len(keys)), total=len(keys)):
+  # for _, val_list in origin_data.items():
+    key = keys[index]
+    val_list = origin_data.get(key)
+    for val in val_list:
+      cur_data = {
+        "context": val,
+        "question": "",
+        "answer": [val]
+      }
+      unlabel_data.append(cur_data)
+      if len(unlabel_data) >= data_num_each_file:
+        save_path = os.path.join(target_path,
+                                 f"{file_prefix}_{str(file_index)}.json")
+        writejson(unlabel_data, save_path)
+        unlabel_data = []
+        file_index += 1
+  if len(unlabel_data)>0:
+    save_path = os.path.join(target_path,
+                             f"{file_prefix}_{str(file_index)}.json")
+    writejson(unlabel_data, save_path)
+    unlabel_data = []
+    file_index += 1
+
+def run_generate_unlabel_data():
+  origin_data_path = "./generate_data/origin_data.json"
+  generate_unlabel_data(origin_data_path)
+
+
+def run_generate_data():
   dir_name = r"D:\Work\招商new\招商所有样本 docx - 1210整理"
-  target_path = "./generate_date/origin_data.json"
+  target_path = "./generate_data/origin_data.json"
   data_max_len = 512
   generate_date(dir_name, target_path, data_max_len)
-  pass
+
+if __name__ == "__main__":
+  run_generate_unlabel_data()
+  # run_generate_data()
