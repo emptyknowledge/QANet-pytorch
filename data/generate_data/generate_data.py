@@ -86,6 +86,9 @@ def generate_unlabel_data(origin_data_path,
     unlabel_data = []
     file_index += 1
 
+def generate_train_data_from_labeled_data():
+  """"""
+
 def run_generate_unlabel_data():
   origin_data_path = "./generate_data/origin_data.json"
   generate_unlabel_data(origin_data_path)
@@ -96,6 +99,8 @@ def run_generate_data():
   target_path = "./generate_data/origin_data.json"
   data_max_len = 512
   generate_date(dir_name, target_path, data_max_len)
+
+
 
 if __name__ == "__main__":
   run_generate_unlabel_data()
