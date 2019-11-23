@@ -86,8 +86,31 @@ def generate_unlabel_data(origin_data_path,
     unlabel_data = []
     file_index += 1
 
-def generate_train_data_from_labeled_data():
+def generate_train_data_from_labeled_data(data_dir="./generate_data/labeled_data",
+                                          target_path="./generate_data/labeled_data.json"):
   """"""
+  if not os.path.exists(os.path.dirname(target_path)):
+    os.makedirs(os.path.dirname(target_path))
+  files = get_file_paths(data_dir)
+  labeled_data = []
+  for file in files:
+    datas = readjson(file)
+    for data in datas:
+      answer_text = data.get("answer")
+      if len(answer_text) < 2:
+        continue
+      answer_idx = [str(len(answer_text[0])),
+                    str(len(answer_text[0] + answer_text[1]))]
+      data["answer"] = ",".join(answer_idx)
+      labeled_data.append(data)
+
+  writejson(labeled_data, target_path)
+
+def run_generate_labeled_data():
+  """"""
+  data_dir = "./generate_data/labeled_data"
+  target_path = "./generate_data/labeled_data.json"
+  generate_train_data_from_labeled_data()
 
 def run_generate_unlabel_data():
   origin_data_path = "./generate_data/origin_data.json"
@@ -103,5 +126,6 @@ def run_generate_data():
 
 
 if __name__ == "__main__":
-  run_generate_unlabel_data()
+  run_generate_labeled_data()
+  # run_generate_unlabel_data()
   # run_generate_data()
