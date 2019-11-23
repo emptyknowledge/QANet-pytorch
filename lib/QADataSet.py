@@ -19,7 +19,7 @@ def read_data(path):
 class QADataSet(Dataset):
   def __init__(self, data_path="./data/train/train.json",
                batch_size=1, context_len=512, question_len=20):
-    bert_embedding = BertEmbedding()
+    self.bert_embedding = BertEmbedding()
     data = read_data(data_path)
     self.context_len = context_len
     self.question_len = question_len
@@ -29,9 +29,9 @@ class QADataSet(Dataset):
     self.batch_size = batch_size
     self.data_szie = len(data)
     for item in data:
-      self.context_idx.append(self.padarr(bert_embedding.encode(item.get("context")),
+      self.context_idx.append(self.padarr(self.bert_embedding.encode(item.get("context")),
                                           self.context_len))
-      self.question_idx.append(self.padarr(bert_embedding.encode(item.get("question")),
+      self.question_idx.append(self.padarr(self.bert_embedding.encode(item.get("question")),
                                            self.question_len))
       answer = [int(v) for v in item.get("answer").split(",")]
       self.answer_idx.append(answer)
@@ -56,6 +56,11 @@ class QADataSet(Dataset):
     res[0:min(len(val), v_len)] = val[0:min(len(val), v_len)]
     return [res]
 
+  def idx2text(self, idx):
+    return self.bert_embedding.decode2text(idx)
+
+  def idx2multi_text(self, idx):
+    return self.bert_embedding.decode2multi_text(idx)
     
 
 

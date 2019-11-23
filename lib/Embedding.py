@@ -30,3 +30,20 @@ class BertEmbedding():
       output = self.model(input)
       embedding, _, encoded_layers, _ = output
     return embedding
+
+  def decode2text(self, idx):
+    idx = idx.tolist()
+    if not idx:
+      return ""
+
+    token = self.tokenizer.convert_ids_to_tokens(idx)
+    return "".join(token)
+
+  def decode2multi_text(self, idxs):
+    idxs = idxs.tolist()
+    if not idxs:
+      return ""
+    result = []
+    for val in idxs:
+      result.append(self.decode2text(val))
+    return result

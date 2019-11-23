@@ -110,6 +110,19 @@ def convert_tokens(eval_file, qa_id, pp1, pp2):
     return answer_dict, remapped_dict
 
 
+def evaluate_valid_result(valid_result):
+    f1 = exact_match = total = 0
+    for item in valid_result:
+        total += 1
+        ground_truths = item.get("labelled_answer")
+        prediction = item.get("predict_answer")
+        exact_match += metric_max_over_ground_truths(exact_match_score, prediction, ground_truths)
+        f1 += metric_max_over_ground_truths(f1_score, prediction, ground_truths)
+    exact_match = 100.0 * exact_match / total
+    f1 = 100.0 * f1 / total
+    return {'exact_match': exact_match, 'f1': f1}
+
+
 def evaluate(eval_file, answer_dict):
     f1 = exact_match = total = 0
     for key, value in answer_dict.items():
@@ -141,8 +154,10 @@ def normalize_answer(s):
 
 
 def f1_score(prediction, ground_truth):
-    prediction_tokens = normalize_answer(prediction).split()
-    ground_truth_tokens = normalize_answer(ground_truth).split()
+    # prediction_tokens = normalize_answer(prediction).split()
+    # ground_truth_tokens = normalize_answer(ground_truth).split()
+    prediction_tokens = prediction.split()
+    ground_truth_tokens = ground_truth.split()
     common = Counter(prediction_tokens) & Counter(ground_truth_tokens)
     num_same = sum(common.values())
     if num_same == 0:
@@ -154,7 +169,9 @@ def f1_score(prediction, ground_truth):
 
 
 def exact_match_score(prediction, ground_truth):
-    return (normalize_answer(prediction) == normalize_answer(ground_truth))
+    # return (normalize_answer(prediction) == normalize_answer(ground_truth))
+    return prediction==ground_truth
+
 
 
 def metric_max_over_ground_truths(metric_fn, prediction, ground_truths):
@@ -191,13 +208,19 @@ def train(model, optimizer, scheduler, ema, dataset, start, length):
 def valid(model, dataset, eval_file):
     model.eval()
     answer_dict = {}
+    valid_result = []
     losses = []
     num_batches = config.val_num_batches
     with torch.no_grad():
-        for i in tqdm(random.sample(range(0, len(dataset)), num_batches), total=num_batches):
-            Cwid, Ccid, Qwid, Qcid, y1, y2, ids = dataset[i]
-            Cwid, Ccid, Qwid, Qcid = Cwid.to(device), Ccid.to(device), Qwid.to(device), Qcid.to(device)
-            p1, p2 = model(Cwid, Ccid, Qwid, Qcid)
+        for i in tqdm(
+          random.sample(range(0, len(dataset)),
+                        min(num_batches, len(dataset))),
+          total=num_batches):
+            Cwid, Qwid, answer = dataset[i]
+            Cwid, Qwid = Cwid.to(device), Qwid.to(device)
+            y1, y2 = answer[0].view(-1).to(device), answer[1].view(-1).to(
+                device)
+            p1, p2 = model(Cwid, Qwid)
             y1, y2 = y1.to(device), y2.to(device)
             loss1 = F.nll_loss(p1, y1, reduction='mean')
             loss2 = F.nll_loss(p2, y2, reduction='mean')
@@ -208,13 +231,30 @@ def valid(model, dataset, eval_file):
             yps = torch.stack([yp1, yp2], dim=1)
             ymin, _ = torch.min(yps, 1)
             ymax, _ = torch.max(yps, 1)
-            answer_dict_, _ = convert_tokens(eval_file, ids.tolist(), ymin.tolist(), ymax.tolist())
-            answer_dict.update(answer_dict_)
+            valid_result.extend(convert_valid_result(Cwid, Qwid, y1, y2, yp1, yp2, dataset))
+            # answer_dict_, _ = convert_tokens(eval_file, ymin.tolist(), ymax.tolist())
+            # answer_dict.update(answer_dict_)
     loss = np.mean(losses)
-    metrics = evaluate(eval_file, answer_dict)
+    # metrics = evaluate(eval_file, answer_dict)
+    metrics = evaluate_valid_result(valid_result)
     metrics["loss"] = loss
     print("VALID loss {:8f} F1 {:8f} EM {:8f}\n".format(loss, metrics["f1"], metrics["exact_match"]))
 
+def convert_valid_result(Cwids, Qwids, y1s, y2s, p1s, p2s, dataset):
+    """"""
+    result = []
+    for Cwid, Qwid, y1, y2, p1, p2 in zip(Cwids, Qwids, y1s, y2s, p1s, p2s):
+      Cw_text = dataset.idx2text(Cwid)
+      Qw_text = dataset.idx2text(Qwid)
+      y1, y2 = int(y1), int(y2)
+      p1, p2 = int(p1), int(p2)
+      result.append({
+        "context": Cw_text,
+        "question": Qw_text,
+        "labelled_answer": Cw_text[y1: y2],
+        "predict_answer": Cw_text[p1: p2]
+      })
+    return result
 
 def test(model, dataset, eval_file):
     model.eval()
@@ -247,6 +287,14 @@ def test(model, dataset, eval_file):
     print("TEST loss {:8f} F1 {:8f} EM {:8f}\n".format(loss, metrics["f1"], metrics["exact_match"]))
     return metrics
 
+def load_model(model_dir, check_point):
+    """
+
+    Returns:
+
+    """
+    model_path = os.path.join(model_dir, f"model_{check_point}.pt")
+    return torch.load(model_path)
 
 def train_entry():
     from lib.models import QANet
