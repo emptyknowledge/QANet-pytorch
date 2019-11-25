@@ -16,6 +16,7 @@ import torch.cuda
 from torch.utils.data import Dataset
 from lib.QADataSet import read_data
 import argparse
+from lib.config import logger
 
 from lib.QADataSet import QADataSet
 
@@ -185,7 +186,7 @@ def metric_max_over_ground_truths(metric_fn, prediction, ground_truths):
 def train(model, optimizer, scheduler, ema, dataset, start, length):
     model.train()
     losses = []
-    print("start train:")
+    logger.info("start train:")
     for i in tqdm(range(start, length + start), total=length):
         optimizer.zero_grad()
         Cwid, Qwid, answer = dataset[i]
@@ -203,7 +204,7 @@ def train(model, optimizer, scheduler, ema, dataset, start, length):
             if p.requires_grad: ema.update_parameter(name, p)
         torch.nn.utils.clip_grad_norm_(model.parameters(), config.grad_clip)
     loss_avg = np.mean(losses)
-    print("STEP {:8d} loss {:8f}\n".format(i + 1, loss_avg))
+    logger.info("STEP {:8d} loss {:8f}\n".format(i + 1, loss_avg))
 
 
 def valid(model, dataset, eval_file):
@@ -212,7 +213,7 @@ def valid(model, dataset, eval_file):
     valid_result = []
     losses = []
     num_batches = config.val_num_batches
-    print("start valid:")
+    logger.info("start valid:")
     with torch.no_grad():
         for i in tqdm(
           random.sample(range(0, len(dataset)),
@@ -240,7 +241,7 @@ def valid(model, dataset, eval_file):
     # metrics = evaluate(eval_file, answer_dict)
     metrics = evaluate_valid_result(valid_result)
     metrics["loss"] = loss
-    print("VALID loss {:8f} F1 {:8f} EM {:8f}\n".format(loss, metrics["f1"], metrics["exact_match"]))
+    logger.info("VALID loss {:8f} F1 {:8f} EM {:8f}\n".format(loss, metrics["f1"], metrics["exact_match"]))
 
 def convert_valid_result(Cwids, Qwids, y1s, y2s, p1s, p2s, dataset):
     """"""
@@ -325,7 +326,7 @@ def train_entry():
     # with open(config.dev_eval_file, "r") as fh:
     #     dev_eval_file = json.load(fh)
 
-    print("Building model...")
+    logger.info("Building model...")
 
     train_dataset = QADataSet()
     dev_dataset = QADataSet()
@@ -355,7 +356,7 @@ def train_entry():
         train(model, optimizer, scheduler, ema, train_dataset, iter, L)
         valid(model, train_dataset, train_eval_file)
         metrics = test(model, dev_dataset, dev_eval_file)
-        print("Learning rate: {}".format(scheduler.get_lr()))
+        logger.info("Learning rate: {}".format(scheduler.get_lr()))
         dev_f1 = metrics["f1"]
         dev_em = metrics["exact_match"]
         if dev_f1 < best_f1 and dev_em < best_em:
@@ -381,7 +382,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--mode", action="store", dest="mode", default="train", help="train/test/debug")
     pargs = parser.parse_args()
-    print("Current device is {}".format(device))
+    logger.info("Current device is {}".format(device))
     if pargs.mode == "train":
         train_entry()
     elif pargs.mode == "debug":

@@ -1,5 +1,6 @@
-import os
 
+import os
+from my_py_toolkit.log.logger import get_logger
 home = os.path.expanduser(".")
 train_file = os.path.join(home, "data", "squad", "train-v1.1.json")
 dev_file = os.path.join(home, "data", "squad", "dev-v1.1.json")
@@ -70,3 +71,6 @@ pretrained_char = False #Whether to use pretrained char embedding
 
 fasttext_file = os.path.join(home, "data", "fasttext", "wiki-news-300d-1M.vec")
 fasttext = False #Whether to use fasttext
+
+log_path = "./log.txt"
+logger = get_logger(log_path)
