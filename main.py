@@ -185,6 +185,7 @@ def metric_max_over_ground_truths(metric_fn, prediction, ground_truths):
 def train(model, optimizer, scheduler, ema, dataset, start, length):
     model.train()
     losses = []
+    print("start train:")
     for i in tqdm(range(start, length + start), total=length):
         optimizer.zero_grad()
         Cwid, Qwid, answer = dataset[i]
@@ -211,6 +212,7 @@ def valid(model, dataset, eval_file):
     valid_result = []
     losses = []
     num_batches = config.val_num_batches
+    print("start valid:")
     with torch.no_grad():
         for i in tqdm(
           random.sample(range(0, len(dataset)),
@@ -260,12 +262,18 @@ def test(model, dataset, eval_file):
     model.eval()
     answer_dict = {}
     losses = []
+    valid_result = []
     num_batches = config.test_num_batches
+    print("start test:")
     with torch.no_grad():
-        for i in tqdm(range(num_batches), total=num_batches):
-            Cwid, Ccid, Qwid, Qcid, y1, y2, ids = dataset[i]
-            Cwid, Ccid, Qwid, Qcid = Cwid.to(device), Ccid.to(device), Qwid.to(device), Qcid.to(device)
-            p1, p2 = model(Cwid, Ccid, Qwid, Qcid)
+        for i in tqdm(range(num_batches), total=min(num_batches, len(dataset))):
+            Cwid, Qwid, answer = dataset[i]
+            Cwid, Qwid = Cwid.to(device), Qwid.to(device)
+            y1, y2 = answer[0].view(-1).to(device), answer[1].view(-1).to(
+                device)
+            p1, p2 = model(Cwid, Qwid)
+            y1, y2 = y1.to(device), y2.to(device)
+            p1, p2 = model(Cwid, Qwid)
             y1, y2 = y1.to(device), y2.to(device)
             loss1 = F.nll_loss(p1, y1, reduction='mean')
             loss2 = F.nll_loss(p2, y2, reduction='mean')
@@ -276,12 +284,14 @@ def test(model, dataset, eval_file):
             yps = torch.stack([yp1, yp2], dim=1)
             ymin, _ = torch.min(yps, 1)
             ymax, _ = torch.max(yps, 1)
-            answer_dict_, _ = convert_tokens(eval_file, ids.tolist(), ymin.tolist(), ymax.tolist())
-            answer_dict.update(answer_dict_)
+            valid_result.extend(convert_valid_result(Cwid, Qwid, y1, y2, yp1, yp2, dataset))
+            # answer_dict_, _ = convert_tokens(eval_file, ids.tolist(), ymin.tolist(), ymax.tolist())
+            # answer_dict.update(answer_dict_)
     loss = np.mean(losses)
-    metrics = evaluate(eval_file, answer_dict)
+    # metrics = evaluate(eval_file, answer_dict)
+    metrics = evaluate_valid_result(valid_result)
     f = open("log/answers.json", "w")
-    json.dump(answer_dict, f)
+    json.dump(valid_result, f)
     f.close()
     metrics["loss"] = loss
     print("TEST loss {:8f} F1 {:8f} EM {:8f}\n".format(loss, metrics["f1"], metrics["exact_match"]))
@@ -295,6 +305,13 @@ def load_model(model_dir, check_point):
     """
     model_path = os.path.join(model_dir, f"model_{check_point}.pt")
     return torch.load(model_path)
+def get_model():
+  from lib.models import QANet
+  if not config.is_continue:
+    return QANet()
+  else:
+    model_path = os.path.join(config.model_dir, f"model_{config.continue_checkpoint}.pt")
+    model = torch.load(model_path, map_location=config.device)
 
 def train_entry():
     from lib.models import QANet

@@ -38,6 +38,7 @@ word_count_limit = -1 #Min count for word
 char_count_limit = -1 #Min count for char
 
 is_continue = False
+model_dir = "./model"
 continue_checkpoint = 200
 capacity = 15000 #Batch size of dataset shuffle
 num_threads = 4 #Number of threads in input pipeline
@@ -46,7 +47,7 @@ bucket_range = [40, 401, 40] #the range of bucket
 
 batch_size = 8 #Batch size
 num_steps = 60000 #Number of steps
-checkpoint = 1 # 200 #checkpoint to save and evaluate the model
+checkpoint = 200 # 200 #checkpoint to save and evaluate the model
 period = 100 #period to save batch loss
 val_num_batches = 150 #Number of batches to evaluate the model
 test_num_batches = 150 #Number of batches to evaluate the model
@@ -61,6 +62,7 @@ beta2 = 0.999 #Beta 2
 early_stop = 10 #Checkpoints for early stop
 d_model = 96 #Dimension of connectors of each layer
 num_heads = 8 #Number of heads in multi-head attention
+
 
 # Extensions (Uncomment corresponding line in download.sh to download the required data)
 glove_char_file = os.path.join(home, "data", "glove", "glove.840B.300d-char.txt")
