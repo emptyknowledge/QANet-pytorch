@@ -44,7 +44,15 @@ class QADataSet(Dataset):
 
   def __getitem__(self, item):
     # index = self.idx[(item * self.batch_size) % self.data_szie: ((item + 1) * self.batch_size) % self.data_szie]
-    index = self.idx[(item * self.batch_size) % self.data_szie]
+    if self.batch_size > len(self.idx):
+      index = self.idx[(item * self.batch_size) % self.data_szie]
+    else:
+      start_idx = (item * self.batch_size) % self.data_szie
+      end_idx = ((item + 1) * self.batch_size) % self.data_szie
+      if start_idx < end_idx:
+        index = self.idx[start_idx:end_idx]
+      else:
+        index = self.idx[start_idx:] + self.idx[:end_idx]
     index = torch.tensor(index).long()
     return (self.context_idx[index], self.question_idx[index], self.answer_idx[index])
 
