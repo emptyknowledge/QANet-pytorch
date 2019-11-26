@@ -56,9 +56,9 @@ class QADataSet(Dataset):
       else:
         index = self.idx[start_idx:] + self.idx[:end_idx]
     index = torch.tensor(index).long()
-    return (torch.cat(list(self.context_idx[index]), 0),
-            torch.cat(list(self.question_idx[index]), 0),
-            torch.cat(list(self.answer_idx[index]), 0))
+    return (self.context_idx[index],
+            self.question_idx[index],
+            self.answer_idx[index])
 
   def __len__(self):
     return self.data_szie
@@ -66,7 +66,7 @@ class QADataSet(Dataset):
   def padarr(self, val, v_len):
     res = [0] * v_len
     res[0:min(len(val), v_len)] = val[0:min(len(val), v_len)]
-    return [res]
+    return res
 
   def idx2text(self, idx):
     return self.bert_embedding.decode2text(idx)

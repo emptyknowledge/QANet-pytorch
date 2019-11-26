@@ -192,7 +192,7 @@ def train(model, optimizer, scheduler, ema, dataset, start, length):
         Cwid, Qwid, answer = dataset[i]
         Cwid, Qwid = Cwid.to(device), Qwid.to(device)
         p1, p2 = model(Cwid, Qwid)
-        y1, y2 = answer[0].view(-1).to(device), answer[1].view(-1).to(device)
+        y1, y2 = answer[:, 0].view(-1).to(device), answer[:, 1].view(-1).to(device)
         loss1 = F.nll_loss(p1, y1, reduction='mean')
         loss2 = F.nll_loss(p2, y2, reduction='mean')
         loss = (loss1 + loss2) / 2
