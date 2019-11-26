@@ -328,8 +328,8 @@ def train_entry():
 
     logger.info("Building model...")
 
-    train_dataset = QADataSet()
-    dev_dataset = QADataSet()
+    train_dataset = QADataSet(batch_size=config.batch_size)
+    dev_dataset = QADataSet(batch_size=config.batch_size)
     train_eval_file = read_data(config.train_eval_file)
     dev_eval_file = read_data(config.dev_eval_file)
 

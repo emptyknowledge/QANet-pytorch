@@ -56,7 +56,9 @@ class QADataSet(Dataset):
       else:
         index = self.idx[start_idx:] + self.idx[:end_idx]
     index = torch.tensor(index).long()
-    return (self.context_idx[index], self.question_idx[index], self.answer_idx[index])
+    return (torch.cat(list(self.context_idx[index]), 0),
+            torch.cat(list(self.question_idx[index]), 0),
+            torch.cat(list(self.answer_idx[index]), 0))
 
   def __len__(self):
     return self.data_szie
