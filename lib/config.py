@@ -48,7 +48,7 @@ bucket_range = [40, 401, 40] #the range of bucket
 
 batch_size = 8 #Batch size
 num_steps = 60000 #Number of steps
-checkpoint = 200 # 200 #checkpoint to save and evaluate the model
+checkpoint = 100 # 200 #checkpoint to save and evaluate the model
 period = 100 #period to save batch loss
 val_num_batches = 150 #Number of batches to evaluate the model
 test_num_batches = 150 #Number of batches to evaluate the model
@@ -63,6 +63,8 @@ beta2 = 0.999 #Beta 2
 early_stop = 10 #Checkpoints for early stop
 d_model = 96 #Dimension of connectors of each layer
 num_heads = 8 #Number of heads in multi-head attention
+epochs = 20 # The epoch of train.
+interval_save = 500 # The interval of save model.
 
 
 # Extensions (Uncomment corresponding line in download.sh to download the required data)
