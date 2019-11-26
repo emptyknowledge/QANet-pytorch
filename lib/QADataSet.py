@@ -40,6 +40,8 @@ class QADataSet(Dataset):
     self.answer_idx = torch.Tensor(self.answer_idx).long()
   
     self.idx = list(range(len(data)))
+    if self.batch_size > self.data_szie:
+      self.idx = self.idx * (self.batch_size//self.data_szie + 1)
     random.shuffle(self.idx)
 
   def __getitem__(self, item):
