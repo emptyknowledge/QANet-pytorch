@@ -223,7 +223,7 @@ def valid(model, dataset, eval_file):
       total=num_batches):
       Cwid, Qwid, answer = dataset[i]
       Cwid, Qwid = Cwid.to(device), Qwid.to(device)
-      y1, y2 = answer[0].view(-1).to(device), answer[1].view(-1).to(
+      y1, y2 = answer[:, 0].view(-1).to(device), answer[:, 1].view(-1).to(
         device)
       p1, p2 = model(Cwid, Qwid)
       y1, y2 = y1.to(device), y2.to(device)
@@ -277,7 +277,7 @@ def test(model, dataset, eval_file):
     for i in tqdm(range(num_batches), total=min(num_batches, len(dataset))):
       Cwid, Qwid, answer = dataset[i]
       Cwid, Qwid = Cwid.to(device), Qwid.to(device)
-      y1, y2 = answer[0].view(-1).to(device), answer[1].view(-1).to(
+      y1, y2 = answer[:, 0].view(-1).to(device), answer[:, 1].view(-1).to(
         device)
       p1, p2 = model(Cwid, Qwid)
       y1, y2 = y1.to(device), y2.to(device)
