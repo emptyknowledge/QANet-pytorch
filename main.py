@@ -19,6 +19,7 @@ import argparse
 from lib.config import logger
 
 from lib.QADataSet import QADataSet
+from my_py_toolkit.decorator.decorator import fn_timer
 
 '''
 Some functions are from the official evaluation script.
@@ -184,7 +185,7 @@ def metric_max_over_ground_truths(metric_fn, prediction, ground_truths):
     scores_for_ground_truths.append(score)
   return max(scores_for_ground_truths)
 
-
+@fn_timer(logger)
 def train(model, optimizer, scheduler, ema, dataset, start, length):
   model.train()
   losses = []
@@ -204,11 +205,11 @@ def train(model, optimizer, scheduler, ema, dataset, start, length):
     scheduler.step()
     for name, p in model.named_parameters():
       if p.requires_grad: ema.update_parameter(name, p)
-    torch.nn.utils.clip_grad_norm_(model.parameters(), config.grad_clip)
+    # torch.nn.utils.clip_grad_norm_(model.parameters(), config.grad_clip)
   loss_avg = np.mean(losses)
   logger.info("STEP {:8d} loss {:8f}\n".format(i + 1, loss_avg))
 
-
+@fn_timer(logger)
 def valid(model, dataset, eval_file):
   model.eval()
   answer_dict = {}
@@ -265,7 +266,7 @@ def convert_valid_result(Cwids, Qwids, y1s, y2s, p1s, p2s, dataset):
     })
   return result
 
-
+@fn_timer(logger)
 def test(model, dataset, eval_file):
   model.eval()
   answer_dict = {}
