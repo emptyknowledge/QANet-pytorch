@@ -25,8 +25,9 @@ from my_py_toolkit.decorator.decorator import fn_timer
 Some functions are from the official evaluation script.
 '''
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-device = "cpu"
+# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# device = "cpu"
+device = config.device
 
 
 class SQuADDataset(Dataset):
@@ -324,9 +325,11 @@ def get_model():
   if not config.is_continue:
     return QANet()
   else:
+    logger.info(f"Continue train, continue_checkpoint: {config.continue_checkpoint}")
     model_path = os.path.join(config.model_dir,
                               f"model_{config.continue_checkpoint}.pt")
     model = torch.load(model_path, map_location=config.device)
+    return model
 
 
 def train_entry():
@@ -355,7 +358,7 @@ def train_entry():
   base_lr = 1.0
   warm_up = config.lr_warm_up_num
 
-  model = QANet().to(device)
+  model = get_model().to(device)
   ema = EMA(config.ema_decay)
   for name, p in model.named_parameters():
     if p.requires_grad: ema.set(name, p)
@@ -372,7 +375,7 @@ def train_entry():
   best_f1 = best_em = patience = 0
   for epoch in range(epochs):
     logger.info(f"Epoch: {epoch}")
-    for iter in range(0, N, L):
+    for iter in range(config.continue_checkpoint + L, N, L):
       logger.info(f"Iter: {iter}")
       train(model, optimizer, scheduler, ema, train_dataset, iter, L)
       valid(model, train_dataset, train_eval_file)

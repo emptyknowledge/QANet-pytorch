@@ -7,6 +7,8 @@ dev_file = os.path.join(home, "data", "squad", "dev-v1.1.json")
 test_file = os.path.join(home, "data", "squad", "dev-v1.1.json")
 glove_word_file = os.path.join(home, "data", "glove", "glove.840B.300d.txt")
 
+device = "cpu"
+
 target_dir = "data"
 event_dir = "log"
 save_dir = "model"
@@ -38,9 +40,9 @@ char_limit = 16 #Limit length for character
 word_count_limit = -1 #Min count for word
 char_count_limit = -1 #Min count for char
 
-is_continue = False
+is_continue = True
 model_dir = "./model"
-continue_checkpoint = 200
+continue_checkpoint = 100
 capacity = 15000 #Batch size of dataset shuffle
 num_threads = 4 #Number of threads in input pipeline
 is_bucket = False #build bucket batch iterator or not
