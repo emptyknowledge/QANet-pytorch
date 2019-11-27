@@ -19,6 +19,7 @@ import argparse
 from lib.config import logger
 
 from lib.QADataSet import QADataSet
+from lib.utils import write2file
 from my_py_toolkit.decorator.decorator import fn_timer
 
 '''
@@ -209,6 +210,7 @@ def train(model, optimizer, scheduler, ema, dataset, start, length):
     # torch.nn.utils.clip_grad_norm_(model.parameters(), config.grad_clip)
   loss_avg = np.mean(losses)
   logger.info("STEP {:8d} loss {:8f}\n".format(i + 1, loss_avg))
+  return losses
 
 @fn_timer(logger)
 def valid(model, dataset, eval_file):
@@ -335,24 +337,12 @@ def get_model():
 def train_entry():
   from lib.models import QANet
 
-  # with open(config.word_emb_file, "r") as fh:
-  #     word_mat = np.array(json.load(fh), dtype=np.float32)
-  # with open(config.char_emb_file, "r") as fh:
-  #     char_mat = np.array(json.load(fh), dtype=np.float32)
-  # with open(config.train_eval_file, "r") as fh:
-  #     train_eval_file = json.load(fh)
-  # with open(config.dev_eval_file, "r") as fh:
-  #     dev_eval_file = json.load(fh)
-
   logger.info("Building model...")
 
   train_dataset = QADataSet(batch_size=config.batch_size)
   dev_dataset = QADataSet(batch_size=config.batch_size)
   train_eval_file = read_data(config.train_eval_file)
   dev_eval_file = read_data(config.dev_eval_file)
-
-  # train_dataset = SQuADDataset(config.train_record_file, config.num_steps, config.batch_size)
-  # dev_dataset = SQuADDataset(config.dev_record_file, config.test_num_batches, config.batch_size)
 
   lr = config.learning_rate
   base_lr = 1.0
@@ -373,11 +363,12 @@ def train_entry():
   N = config.num_steps
   epochs = config.epochs
   best_f1 = best_em = patience = 0
+  loss_of_each_sample = []
   for epoch in range(epochs):
     logger.info(f"Epoch: {epoch}")
     for iter in range(config.continue_checkpoint + L, N, L):
       logger.info(f"Iter: {iter}")
-      train(model, optimizer, scheduler, ema, train_dataset, iter, L)
+      loss_of_each_sample.extend(train(model, optimizer, scheduler, ema, train_dataset, iter, L))
       valid(model, train_dataset, train_eval_file)
       metrics = test(model, dev_dataset, dev_eval_file)
       logger.info("Learning rate: {}".format(scheduler.get_lr()))
@@ -393,6 +384,8 @@ def train_entry():
       if iter % config.interval_save == 0:
         fn = os.path.join(config.save_dir, f"model_{str(iter)}.pt")
         torch.save(model, fn)
+      write2file(config.losses_path, ",".join(loss_of_each_sample))
+      loss_of_each_sample = []
 
 
 def test_entry():

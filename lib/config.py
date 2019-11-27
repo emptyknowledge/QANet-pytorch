@@ -76,5 +76,6 @@ pretrained_char = False #Whether to use pretrained char embedding
 fasttext_file = os.path.join(home, "data", "fasttext", "wiki-news-300d-1M.vec")
 fasttext = False #Whether to use fasttext
 
-log_path = "./log.txt"
+log_path = "./log/log.txt"
+losses_path = "./log/losses_log.txt"
 logger = get_logger(log_path)
