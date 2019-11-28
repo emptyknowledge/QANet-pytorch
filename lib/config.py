@@ -7,7 +7,7 @@ dev_file = os.path.join(home, "data", "squad", "dev-v1.1.json")
 test_file = os.path.join(home, "data", "squad", "dev-v1.1.json")
 glove_word_file = os.path.join(home, "data", "glove", "glove.840B.300d.txt")
 
-device = "cpu"
+device = "gpu"
 
 target_dir = "data"
 event_dir = "log"
@@ -40,7 +40,7 @@ char_limit = 16 #Limit length for character
 word_count_limit = -1 #Min count for word
 char_count_limit = -1 #Min count for char
 
-is_continue = True
+is_continue = False
 model_dir = "./model"
 continue_checkpoint = 100
 capacity = 15000 #Batch size of dataset shuffle
@@ -67,7 +67,8 @@ d_model = 96 #Dimension of connectors of each layer
 num_heads = 8 #Number of heads in multi-head attention
 epochs = 20 # The epoch of train.
 interval_save = 50 # The interval of save model.
-
+min_loss = 0 # The scope of loss.可能出现 loss 非常大的情况
+max_loss = 100
 
 # Extensions (Uncomment corresponding line in download.sh to download the required data)
 glove_char_file = os.path.join(home, "data", "glove", "glove.840B.300d-char.txt")
@@ -76,6 +77,9 @@ pretrained_char = False #Whether to use pretrained char embedding
 fasttext_file = os.path.join(home, "data", "fasttext", "wiki-news-300d-1M.vec")
 fasttext = False #Whether to use fasttext
 
+is_only_save_params = True
+
 log_path = "./log/log.txt"
 losses_path = "./log/losses_log.txt"
+valid_result_dir = "./log/valid_result"
 logger = get_logger(log_path)

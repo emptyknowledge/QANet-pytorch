@@ -6,6 +6,7 @@
 #
 
 import os
+import torch
 
 def write2file(file_path, content, is_continue=True):
   """"""
@@ -14,3 +15,4 @@ def write2file(file_path, content, is_continue=True):
   mode = "w+" if is_continue else "w"
   with open(file_path, mode, encoding="utf-8")as f:
     f.write("\n" + content)
+
