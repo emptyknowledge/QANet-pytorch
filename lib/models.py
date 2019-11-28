@@ -68,14 +68,14 @@ class Highway(nn.Module):
         self.gate = nn.ModuleList([nn.Linear(size, size) for _ in range(self.n)])
 
     def forward(self, x):
-        x = x.transpose(1, 2)
+        # x = x.transpose(1, 2)
         for i in range(self.n):
             # 线性变换
             gate = torch.sigmoid(self.gate[i](x))
             # 非线性变换
             nonlinear = F.relu(self.linear[i](x))
             x = gate * nonlinear + (1 - gate) * x
-        x = x.transpose(1, 2)
+        # x = x.transpose(1, 2)
         return x
 
 
@@ -166,7 +166,7 @@ class Embedding(nn.Module):
         # ch_emb, _ = torch.max(ch_emb, dim=3)
         # ch_emb = ch_emb.squeeze()
         wd_emb = F.dropout(wd_emb, p=dropout, training=self.training)
-        wd_emb = wd_emb.transpose(1, 2)
+        # wd_emb = wd_emb.transpose(1, 2)
         wd_emb = self.conv2d(wd_emb)
         emb = wd_emb
         emb = self.high(emb)

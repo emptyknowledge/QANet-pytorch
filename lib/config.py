@@ -7,7 +7,7 @@ dev_file = os.path.join(home, "data", "squad", "dev-v1.1.json")
 test_file = os.path.join(home, "data", "squad", "dev-v1.1.json")
 glove_word_file = os.path.join(home, "data", "glove", "glove.840B.300d.txt")
 
-device = "gpu"
+device = "cpu"
 
 target_dir = "data"
 event_dir = "log"
