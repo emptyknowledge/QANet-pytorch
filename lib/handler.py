@@ -10,6 +10,7 @@ import torch
 from collections import Counter
 import lib.config as config
 from lib.config import logger
+from my_py_toolkit.file.file_toolkit import make_path_legal
 
 
 
@@ -152,6 +153,7 @@ def get_model():
   
 def save_model(model, steps=0):
   model_path = os.path.join(config.model_dir, f"model_{str(steps)}.pkl")
+  make_path_legal(model_path)
   if not config.is_only_save_params:
     torch.save(model, model_path)
   else:

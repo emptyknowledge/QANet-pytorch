@@ -3,8 +3,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 import math
 import lib.config as config
+import torchsnooper
 
 from lib.Embedding import BertEmbedding
+
 
 d_model = config.d_model
 n_head = config.num_heads
@@ -68,14 +70,14 @@ class Highway(nn.Module):
         self.gate = nn.ModuleList([nn.Linear(size, size) for _ in range(self.n)])
 
     def forward(self, x):
-        # x = x.transpose(1, 2)
+        x = x.transpose(1, 2)
         for i in range(self.n):
             # 线性变换
             gate = torch.sigmoid(self.gate[i](x))
             # 非线性变换
             nonlinear = F.relu(self.linear[i](x))
             x = gate * nonlinear + (1 - gate) * x
-        # x = x.transpose(1, 2)
+        x = x.transpose(1, 2)
         return x
 
 
@@ -155,7 +157,7 @@ class MultiHeadAttention(nn.Module):
 class Embedding(nn.Module):
     def __init__(self):
         super().__init__()
-        self.conv2d = DepthwiseSeparableConv(d_char, d_char, 5, dim=2)
+        self.conv2d = DepthwiseSeparableConv(d_char, d_char, 5, dim=1)
         self.high = Highway(2, d_word)
 
     def forward(self, wd_emb):
@@ -166,7 +168,7 @@ class Embedding(nn.Module):
         # ch_emb, _ = torch.max(ch_emb, dim=3)
         # ch_emb = ch_emb.squeeze()
         wd_emb = F.dropout(wd_emb, p=dropout, training=self.training)
-        # wd_emb = wd_emb.transpose(1, 2)
+        wd_emb = wd_emb.transpose(1, 2)
         wd_emb = self.conv2d(wd_emb)
         emb = wd_emb
         emb = self.high(emb)
@@ -222,14 +224,33 @@ class CQAttention(nn.Module):
         self.w = nn.Parameter(w)
 
     def forward(self, C, Q, cmask, qmask):
+        """
+
+        Args:
+          C: shape: batch_size, dim, length
+          Q: shape: batch_size, dim, length
+          cmask: shape: batch_size, length
+          qmask: shape: batch_size, length
+
+        Returns:
+
+        """
         ss = []
-        C = C.transpose(1, 2)
-        Q = Q.transpose(1, 2)
-        cmask = cmask.unsqueeze(2)
-        qmask = qmask.unsqueeze(1)
-        
+        C = C.transpose(1, 2) # shape: batch_size, context_length, dim
+        Q = Q.transpose(1, 2) # shape: batch_size, question_length, dim
+        cmask = cmask.unsqueeze(2) # shape: batch_size, length, new_dim
+        qmask = qmask.unsqueeze(1) # shape: batch_size, new_dim, length
+
+        # batch_size, conetxt_length, question_length, dim
         shape = (C.size(0), C.size(1), Q.size(1), C.size(2))
+        # C.unsqueeze(2).shape: batch_size, context_length, new_dim(值：1), dim
+        # C.unsqueeze(2).expand(shape): 表示  context 的最后一维 dim 变为
+        # (qestion_length, dim), 最后一维被复制了 question_length 份
         Ct = C.unsqueeze(2).expand(shape)
+        # Q.unsqueeze(1).shape: batch_size, new_dim(值：1), question_length, dim
+        # Q.unsqueeze(1).expand(shape): 表示 question 的后两维由 (question_length, dim)
+        # 变为 (context_length ,question_length, dim), 表示每个 question 被复制为了
+        #  context_length 份
         Qt = Q.unsqueeze(1).expand(shape)
         CQ = torch.mul(Ct, Qt)
         S = torch.cat([Ct, Qt, CQ], dim=3)
@@ -283,7 +304,9 @@ class QANet(nn.Module):
         self.model_enc_blks = nn.ModuleList([enc_blk] * 7)
         self.out = Pointer()
 
+    # @torchsnooper.snoop()
     def forward(self, Cwid, Qwid):
+        # 输入数据有 pad （即补 0 使数据长度一致, mask 拿到补 0 的位置信息）
         cmask = (torch.zeros_like(Cwid) == Cwid).float()
         qmask = (torch.zeros_like(Qwid) == Qwid).float()
         Cw = self.embedding.word_embedding(Cwid)

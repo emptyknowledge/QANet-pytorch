@@ -7,6 +7,7 @@
 
 import os
 import torch
+from pytorch_transformers.convert_tf_checkpoint_to_pytorch import convert_tf_checkpoint_to_pytorch
 
 def write2file(file_path, content, is_continue=True):
   """"""
@@ -16,3 +17,11 @@ def write2file(file_path, content, is_continue=True):
   with open(file_path, mode, encoding="utf-8")as f:
     f.write("\n" + content)
 
+def tf2torch():
+  """
+  convert_tf_checkpoint_to_pytorch(r"\model\chinese_L-12_H-768_A-12\bert_model.ckpt",
+                                   r"\model\chinese_L-12_H-768_A-12\bert_config.json",
+                                   r"\model\chinese_L-12_H-768_A-12\bert_model.bin")
+  Returns:
+
+  """

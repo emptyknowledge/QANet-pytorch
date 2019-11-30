@@ -2,7 +2,8 @@ import lib.config as config
 from math import log2
 import os
 import numpy as np
-import ujson as json
+# import ujson as json
+import json
 import re
 from collections import Counter
 import string
@@ -21,6 +22,7 @@ from lib.config import logger
 from lib.QADataSet import QADataSet
 from lib.handler import *
 from lib.utils import *
+from my_py_toolkit.file.file_toolkit import writejson
 from my_py_toolkit.decorator.decorator import fn_timer
 
 '''
@@ -218,8 +220,10 @@ def train_entry():
         save_model(model, iter)
         valid_res_path = os.path.join(config.valid_result_dir,
                                       f"valid_result_{iter}.json")
-        write2file(valid_result, valid_res_path)
-      write2file(config.losses_path, ",".join(loss_of_each_sample))
+        writejson(valid_result, valid_res_path)
+      write2file(config.losses_path,
+                 ",".join([str(v) for v in loss_of_each_sample]),
+                 is_continue=config.is_continue)
       loss_of_each_sample = []
 
 
