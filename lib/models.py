@@ -253,7 +253,9 @@ class CQAttention(nn.Module):
         #  context_length 份
         Qt = Q.unsqueeze(1).expand(shape)
         CQ = torch.mul(Ct, Qt)
+        # S.shape: batch_size, conetxt_length, question_length, dim * 3
         S = torch.cat([Ct, Qt, CQ], dim=3)
+        # s.shape: batch_size, conetxt_length, question_length, 1
         S = torch.matmul(S, self.w)
         S1 = F.softmax(mask_logits(S, qmask), dim=2)
         S2 = F.softmax(mask_logits(S, cmask), dim=1)
@@ -318,7 +320,8 @@ class QANet(nn.Module):
         Q = self.question_conv(Q)  
         Ce = self.c_emb_enc(C, cmask)
         Qe = self.q_emb_enc(Q, qmask)
-        
+
+        # Attention
         X = self.cq_att(Ce, Qe, cmask, qmask)
         M1 = self.cq_resizer(X)
         for enc in self.model_enc_blks: M1 = enc(M1, cmask)
