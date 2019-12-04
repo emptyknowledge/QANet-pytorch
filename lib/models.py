@@ -292,7 +292,7 @@ class Pointer(nn.Module):
 class QANet(nn.Module):
     def __init__(self):
         super().__init__()
-        self.embedding = BertEmbedding()
+        self.embedding = BertEmbedding(config.bert_path)
         # self.char_emb = nn.Embedding.from_pretrained(torch.Tensor(char_mat), freeze=config.pretrained_char)
         # self.word_emb = nn.Embedding.from_pretrained(torch.Tensor(word_mat))
         self.emb = Embedding()

@@ -175,8 +175,10 @@ def train_entry():
 
   logger.info("Building model...")
 
-  train_dataset = QADataSet(batch_size=config.batch_size)
-  dev_dataset = QADataSet(batch_size=config.batch_size)
+  # train_dataset = QADataSet(batch_size=config.batch_size)
+  # dev_dataset = QADataSet(batch_size=config.batch_size)
+  train_dataset = get_dataset()
+  dev_dataset = get_dataset()
   train_eval_file = read_data(config.train_eval_file)
   dev_eval_file = read_data(config.dev_eval_file)
 
@@ -204,7 +206,9 @@ def train_entry():
     logger.info(f"Epoch: {epoch}")
     for iter in range(config.continue_checkpoint + L, N, L):
       logger.info(f"Iter: {iter}")
-      loss_of_each_sample.extend(train(model, optimizer, scheduler, ema, train_dataset, iter, L))
+      loss_of_each_sample.extend(train(model, optimizer, scheduler, ema,
+                                       train_dataset, iter,
+                                       train_dataset.data_szie))
       valid_result = valid(model, train_dataset, train_eval_file)
       metrics = test(model, dev_dataset, dev_eval_file)
       logger.info("Learning rate: {}".format(scheduler.get_lr()))

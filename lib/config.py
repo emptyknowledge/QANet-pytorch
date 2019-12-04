@@ -9,6 +9,8 @@ glove_word_file = os.path.join(home, "data", "glove", "glove.840B.300d.txt")
 
 device = "cpu"
 
+bert_path = "./data/model/RoBERTa-wwm-ext-large"
+
 target_dir = "data"
 event_dir = "log"
 save_dir = "model"
@@ -27,11 +29,16 @@ word2idx_file = os.path.join(target_dir, "word2idx.json")
 char2idx_file = os.path.join(target_dir, "char2idx.json")
 answer_file = os.path.join(answer_dir, "answer.json")
 
+dataset_name = "cmcr2018"
+dataset_path = {
+  "cmcr2018": "./data/train/cmrc2018/train.json"
+}
+
 glove_char_size = 94 #Corpus size for Glove
 glove_word_size = int(2.2e6) #Corpus size for Glove
 glove_dim = 300 #Embedding dimension for Glove
 char_dim = 64 #Embedding dimension for char
-bert_dim = 768 #Embedding dimension for char
+bert_dim = 1024 #Embedding dimension for char
 
 para_limit = 512 #Limit length for paragraph
 ques_limit = 20 #Limit length for question

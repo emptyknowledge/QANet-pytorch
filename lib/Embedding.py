@@ -28,7 +28,7 @@ class BertEmbedding():
   def word_embedding(self, input):
     with torch.no_grad():
       output = self.model(input)
-      embedding, _, encoded_layers, _ = output
+      embedding, _ = output
     return embedding
 
   def decode2text(self, idx):

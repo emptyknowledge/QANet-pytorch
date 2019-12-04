@@ -17,8 +17,8 @@ def read_data(path):
   with open(path, "r", encoding="utf-8") as f:
     return json.load(f)
 
-class QADataSet(Dataset):
-  def __init__(self, data_path="./data/train/train.json",
+class CMRC_QADataSet(Dataset):
+  def __init__(self, data_path="./data/train/cmrc2018/train.json",
                batch_size=1, context_len=512, question_len=20):
     self.bert_embedding = BertEmbedding(config.bert_path)
     data = read_data(data_path)
@@ -30,11 +30,14 @@ class QADataSet(Dataset):
     self.batch_size = batch_size
     self.data_szie = len(data)
     for item in data:
+      if not self.check_data(item):
+        continue
       self.context_idx.append(self.padarr(self.bert_embedding.encode(item.get("context")),
                                           self.context_len))
       self.question_idx.append(self.padarr(self.bert_embedding.encode(item.get("question")),
                                            self.question_len))
-      answer = [int(v) for v in item.get("answer").split(",")]
+      # answer = [int(v) for v in item.get("answer").split(",")]
+      answer = item.get("answer_index")
       self.answer_idx.append(answer)
     self.context_idx = torch.Tensor(self.context_idx).long()
     self.question_idx = torch.Tensor(self.question_idx).long()
@@ -44,6 +47,14 @@ class QADataSet(Dataset):
     if self.batch_size > self.data_szie:
       self.idx = self.idx * (self.batch_size//self.data_szie + 1)
     random.shuffle(self.idx)
+
+  def check_data(self, item):
+    """"""
+    answer = item.get("answer_index")
+    if answer[0] >512 or answer[1] >512:
+      return False
+    else:
+      return True
 
   def __getitem__(self, item):
     # index = self.idx[(item * self.batch_size) % self.data_szie: ((item + 1) * self.batch_size) % self.data_szie]

@@ -5,10 +5,13 @@
 # cython: language_level=3
 #
 
+import re
 import os
 import torch
 from collections import Counter
 import lib.config as config
+from lib.CMRC_QADataSet import CMRC_QADataSet
+from lib.QADataSet import QADataSet
 from lib.config import logger
 from my_py_toolkit.file.file_toolkit import make_path_legal
 
@@ -159,3 +162,13 @@ def save_model(model, steps=0):
   else:
     torch.save(model.state_dict(), model_path)
     
+def get_dataset():
+  data_path = config.dataset_path.get(config.dataset_name)
+  if "cmcr" in config.dataset_name:
+    dataset = CMRC_QADataSet(data_path,
+                             config.batch_size)
+    return dataset
+  else:
+    dataset = QADataSet(data_path,
+                        config.batch_size)
+    return dataset
