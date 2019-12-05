@@ -94,10 +94,8 @@ def train(model, optimizer, scheduler, ema, dataset, start_step, steps_num, epoc
 @fn_timer(logger)
 def valid(model, dataset):
   model.eval()
-  answer_dict = {}
   valid_result = []
   losses = []
-  num_batches = config.val_num_batches
   logger.info("start valid:")
   with torch.no_grad():
     for i in tqdm(range(0, config.val_num_steps), total=config.val_num_steps):
@@ -120,7 +118,6 @@ def valid(model, dataset):
       valid_result.extend(
         convert_valid_result(Cwid, Qwid, y1, y2, yp1, yp2, dataset))
   loss = np.mean(losses)
-  # metrics = evaluate(eval_file, answer_dict)
   metrics = evaluate_valid_result(valid_result)
   metrics["loss"] = loss
   record_info(losses, f1=[metrics["f1"]], em=[metrics["exact_match"]],
@@ -133,10 +130,8 @@ def valid(model, dataset):
 @fn_timer(logger)
 def test(model, dataset):
   model.eval()
-  answer_dict = {}
   losses = []
   valid_result = []
-  num_batches = config.test_num_batches
   print("start test:")
   with torch.no_grad():
     for i in tqdm(range(config.test_num_steps), total=config.test_num_steps):
