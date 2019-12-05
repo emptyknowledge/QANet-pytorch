@@ -13,7 +13,8 @@ import lib.config as config
 from lib.CMRC_QADataSet import CMRC_QADataSet
 from lib.QADataSet import QADataSet
 from lib.config import logger
-from my_py_toolkit.file.file_toolkit import make_path_legal, get_file_paths, get_file_name
+from my_py_toolkit.file.file_toolkit import *
+from lib.utils import write2file
 from my_py_toolkit.decorator.decorator import fn_timer
 
 
@@ -188,5 +189,29 @@ def get_dataset(data_type="train"):
                         config.batch_size)
     return dataset
 
-def record_info(losses, f1, em):
-  pass
+def record_info(losses, f1=[], em=[], valid_result={}, iter_num=0,
+                r_type="train"):
+  """
+  记录训练中的 loss, f1, em 值.
+  Args:
+    losses:
+    f1:
+    em:
+    r_type:
+
+  Returns:
+
+  """
+  dir_name = f"./log/{r_type}/"
+  losses = [str(v) for v in losses]
+  f1 = [str(v) for v in f1]
+  em = [str(v) for v in em]
+  if losses:
+    write2file(",".join(losses), f"{dir_name}{losses}.txt")
+  if f1:
+    write2file(",".join(f1), f"{dir_name}{f1}.txt")
+  if em:
+    write2file(",".join(em), f"{dir_name}{em}.txt")
+
+  if valid_result:
+    writejson(valid_result, f"{dir_name}valid_result_{iter_num}.json")

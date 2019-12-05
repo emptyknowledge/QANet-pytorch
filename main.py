@@ -22,6 +22,7 @@ from lib.config import logger
 from lib.QADataSet import QADataSet
 from lib.handler import *
 from lib.utils import *
+from lib.handler import *
 from my_py_toolkit.file.file_toolkit import writejson
 from my_py_toolkit.decorator.decorator import fn_timer
 
@@ -58,35 +59,37 @@ class EMA(object):
       self.shadows[name] = new_shadow.to('cpu').clone()
 
 @fn_timer(logger)
-def train(model, optimizer, scheduler, ema, dataset, start, length):
+def train(model, optimizer, scheduler, ema, dataset, start_step, steps_num, epoch):
   model.train()
   clamped_losses = []
   origin_losses = []
-  # clamped_losses = []
-  logger.info("start train:")
-  for i in tqdm(range(start, length + start), total=length):
+  logger.info("start_step train:")
+  for step in tqdm(range(start_step, steps_num + start_step), total=steps_num):
     optimizer.zero_grad()
-    Cwid, Qwid, answer = dataset[i]
+    Cwid, Qwid, answer = dataset[step]
     Cwid, Qwid = Cwid.to(device), Qwid.to(device)
     p1, p2 = model(Cwid, Qwid)
     y1, y2 = answer[:, 0].view(-1).to(device), answer[:, 1].view(-1).to(device)
     loss1 = F.nll_loss(p1, y1, reduction='mean')
     loss2 = F.nll_loss(p2, y2, reduction='mean')
     loss = (loss1 + loss2) / 2
-    logger.info(f"Origin Loss: {loss}")
+    logger.info(f"Origin Loss: {loss}, step: {step}")
     origin_losses.append(loss.item())
     loss = torch.clamp(loss, min=config.min_loss, max=config.max_loss)
-    logger.info(f"Clamped Loss: {loss}")
+    logger.info(f"Clamped Loss: {loss}, step: {step}")
     clamped_losses.append(loss.item())
     loss.backward()
     optimizer.step()
     scheduler.step()
     for name, p in model.named_parameters():
       if p.requires_grad: ema.update_parameter(name, p)
-    # torch.nn.utils.clip_grad_norm_(model.parameters(), config.grad_clip)
+
+    if step % config.interval_save == 0:
+      save_model(model, step)
+      record_info(origin_losses, r_type="train")
+      origin_losses = []
   loss_avg = np.mean(clamped_losses)
-  logger.info("STEP {:8d} loss {:8f}\n".format(i + 1, loss_avg))
-  return clamped_losses, origin_losses
+  logger.info("Epoch {:8d} loss {:8f}\n".format(epoch, loss_avg))
 
 @fn_timer(logger)
 def valid(model, dataset):
@@ -97,10 +100,7 @@ def valid(model, dataset):
   num_batches = config.val_num_batches
   logger.info("start valid:")
   with torch.no_grad():
-    for i in tqdm(
-      random.sample(range(0, len(dataset)),
-                    min(num_batches, len(dataset))),
-      total=num_batches):
+    for i in tqdm(range(0, config.val_num_steps), total=config.val_num_steps):
       Cwid, Qwid, answer = dataset[i]
       Cwid, Qwid = Cwid.to(device), Qwid.to(device)
       y1, y2 = answer[:, 0].view(-1).to(device), answer[:, 1].view(-1).to(
@@ -123,9 +123,11 @@ def valid(model, dataset):
   # metrics = evaluate(eval_file, answer_dict)
   metrics = evaluate_valid_result(valid_result)
   metrics["loss"] = loss
+  record_info(losses, f1=[metrics["f1"]], em=[metrics["exact_match"]],
+              valid_result=valid_result,
+              r_type="valid")
   logger.info("VALID loss {:8f} F1 {:8f} EM {:8f}\n".format(loss, metrics["f1"],
                                                             metrics["exact_match"]))
-  return valid_result
 
 
 @fn_timer(logger)
@@ -137,7 +139,7 @@ def test(model, dataset):
   num_batches = config.test_num_batches
   print("start test:")
   with torch.no_grad():
-    for i in tqdm(range(num_batches), total=min(num_batches, len(dataset))):
+    for i in tqdm(range(config.test_num_steps), total=config.test_num_steps):
       Cwid, Qwid, answer = dataset[i]
       Cwid, Qwid = Cwid.to(device), Qwid.to(device)
       y1, y2 = answer[:, 0].view(-1).to(device), answer[:, 1].view(-1).to(
@@ -162,10 +164,9 @@ def test(model, dataset):
   loss = np.mean(losses)
   # metrics = evaluate(eval_file, answer_dict)
   metrics = evaluate_valid_result(valid_result)
-  f = open("log/answers.json", "w")
-  json.dump(valid_result, f)
-  f.close()
   metrics["loss"] = loss
+  record_info(losses,f1=[metrics["f1"]], em=[metrics["exact_match"]],
+              valid_result=valid_result, r_type="test")
   print("TEST loss {:8f} F1 {:8f} EM {:8f}\n".format(loss, metrics["f1"],
                                                      metrics["exact_match"]))
   return metrics
@@ -206,35 +207,26 @@ def train_entry():
   epochs = config.epochs
   best_f1 = best_em = patience = 0
   loss_of_each_sample = []
+  start_index = 0 if not config.is_continue else config.continue_checkpoint
   for epoch in range(epochs):
     logger.info(f"Epoch: {epoch}")
-    for iter in range(config.continue_checkpoint + L, N, L):
-      logger.info(f"Iter: {iter}")
-      clamped_losses, origin_losses = train(model, optimizer, scheduler, ema,
-                                       train_dataset, iter,
-                                       train_dataset.data_szie)
-      loss_of_each_sample.extend(origin_losses)
-      valid_result = valid(model, dev_dataset)
-      metrics = test(model, trial_dataset)
-      logger.info("Learning rate: {}".format(scheduler.get_lr()))
-      dev_f1 = metrics["f1"]
-      dev_em = metrics["exact_match"]
-      if dev_f1 < best_f1 and dev_em < best_em:
-        patience += 1
-        if patience > config.early_stop: break
-      else:
-        patience = 0
-        best_f1 = max(best_f1, dev_f1)
-        best_em = max(best_em, dev_em)
-      if iter % config.interval_save == 0:
-        save_model(model, iter)
-        valid_res_path = os.path.join(config.valid_result_dir,
-                                      f"valid_result_{iter}.json")
-        writejson(valid_result, valid_res_path)
-      write2file(config.losses_path,
-                 ",".join([str(v) for v in loss_of_each_sample]),
-                 is_continue=config.is_continue)
-      loss_of_each_sample = []
+    # for iter in range(config.continue_checkpoint + L, N, L):
+    # logger.info(f"Iter: {iter}")
+    train(model, optimizer, scheduler, ema, train_dataset, start_index,
+                                     train_dataset.data_szie, epoch)
+    valid(model, dev_dataset)
+    metrics = test(model, trial_dataset)
+    logger.info("Learning rate: {}".format(scheduler.get_lr()))
+    dev_f1 = metrics["f1"]
+    dev_em = metrics["exact_match"]
+    if dev_f1 < best_f1 and dev_em < best_em:
+      patience += 1
+      if patience > config.early_stop: break
+    else:
+      patience = 0
+      best_f1 = max(best_f1, dev_f1)
+      best_em = max(best_em, dev_em)
+    start_index = 0
 
 
 # def test_entry():

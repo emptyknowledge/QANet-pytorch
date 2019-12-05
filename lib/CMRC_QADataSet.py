@@ -52,7 +52,7 @@ class CMRC_QADataSet(Dataset):
   def check_data(self, item):
     """"""
     answer = item.get("answer_index")
-    if answer[0] >512 or answer[1] >512:
+    if answer[0] >511 or answer[1] >511:
       return False
     else:
       return True

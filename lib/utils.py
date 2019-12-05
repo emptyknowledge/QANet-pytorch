@@ -9,7 +9,7 @@ import os
 import torch
 from pytorch_transformers.convert_tf_checkpoint_to_pytorch import convert_tf_checkpoint_to_pytorch
 
-def write2file(file_path, content, is_continue=True):
+def write2file(content, file_path, is_continue=True):
   """"""
   if not os.path.dirname(file_path):
     os.makedirs(os.path.dirname(file_path))
