@@ -14,7 +14,7 @@ from lib.CMRC_QADataSet import CMRC_QADataSet
 from lib.QADataSet import QADataSet
 from lib.config import logger
 from my_py_toolkit.file.file_toolkit import make_path_legal, get_file_paths, get_file_name
-
+from my_py_toolkit.decorator.decorator import fn_timer
 
 
 def evaluate_valid_result(valid_result):
@@ -138,8 +138,13 @@ def load_model(model_dir, check_point):
   return torch.load(model_path)
 
 
-
+@fn_timer(logger)
 def get_model():
+  """
+  Gets models.
+  Returns:
+
+  """
   from lib.models import QANet
   if not config.is_continue:
     return QANet()
@@ -161,7 +166,8 @@ def save_model(model, steps=0):
     torch.save(model, model_path)
   else:
     torch.save(model.state_dict(), model_path)
-    
+
+@fn_timer(logger)
 def get_dataset(data_type="train"):
   """
 
@@ -171,7 +177,7 @@ def get_dataset(data_type="train"):
   Returns:
 
   """
-  data_dir = config.dataset_path.get(config.dataset_name)
+  data_dir = config.dataset_dir.get(config.dataset_name)
   data_path = [path for path in get_file_paths(data_dir) if data_type in get_file_name(path)][0]
   if "cmcr" in config.dataset_name:
     dataset = CMRC_QADataSet(data_path,
@@ -181,3 +187,6 @@ def get_dataset(data_type="train"):
     dataset = QADataSet(data_path,
                         config.batch_size)
     return dataset
+
+def record_info(losses, f1, em):
+  pass

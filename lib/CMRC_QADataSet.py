@@ -44,7 +44,7 @@ class CMRC_QADataSet(Dataset):
     self.question_idx = torch.Tensor(self.question_idx).long()
     self.answer_idx = torch.Tensor(self.answer_idx).long()
   
-    self.idx = list(range(len(data)))
+    self.idx = list(range(self.data_szie))
     if self.batch_size > self.data_szie:
       self.idx = self.idx * (self.batch_size//self.data_szie + 1)
     random.shuffle(self.idx)

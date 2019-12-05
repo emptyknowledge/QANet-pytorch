@@ -7,13 +7,14 @@
 
 import os
 import torch
+from lib import config
 from pytorch_transformers import BertModel, BertTokenizer
 
 class BertEmbedding():
   """"""
 
   def __init__(self, model_path="./data/model/bert"):
-    self.model = BertModel.from_pretrained(model_path)
+    self.model = BertModel.from_pretrained(model_path).to(config.device)
     self.tokenizer = BertTokenizer.from_pretrained(model_path)
 
   def encode(self, text):
