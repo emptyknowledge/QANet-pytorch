@@ -30,8 +30,8 @@ char2idx_file = os.path.join(target_dir, "char2idx.json")
 answer_file = os.path.join(answer_dir, "answer.json")
 
 dataset_name = "cmcr2018"
-dataset_path = {
-  "cmcr2018": "./data/train/cmrc2018/train.json"
+dataset_dir = {
+  "cmcr2018": "./data/train/cmrc2018"
 }
 
 glove_char_size = 94 #Corpus size for Glove

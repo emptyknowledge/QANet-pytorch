@@ -13,7 +13,7 @@ import lib.config as config
 from lib.CMRC_QADataSet import CMRC_QADataSet
 from lib.QADataSet import QADataSet
 from lib.config import logger
-from my_py_toolkit.file.file_toolkit import make_path_legal
+from my_py_toolkit.file.file_toolkit import make_path_legal, get_file_paths, get_file_name
 
 
 
@@ -162,8 +162,17 @@ def save_model(model, steps=0):
   else:
     torch.save(model.state_dict(), model_path)
     
-def get_dataset():
-  data_path = config.dataset_path.get(config.dataset_name)
+def get_dataset(data_type="train"):
+  """
+
+  Args:
+    data_type(str): train, dev, trial
+
+  Returns:
+
+  """
+  data_dir = config.dataset_path.get(config.dataset_name)
+  data_path = [path for path in get_file_paths(data_dir) if data_type in get_file_name(path)][0]
   if "cmcr" in config.dataset_name:
     dataset = CMRC_QADataSet(data_path,
                              config.batch_size)

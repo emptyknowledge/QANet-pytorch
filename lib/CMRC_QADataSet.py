@@ -28,7 +28,7 @@ class CMRC_QADataSet(Dataset):
     self.question_idx = []
     self.answer_idx = []
     self.batch_size = batch_size
-    self.data_szie = len(data)
+    self.data_szie = 0
     for item in data:
       if not self.check_data(item):
         continue
@@ -39,6 +39,7 @@ class CMRC_QADataSet(Dataset):
       # answer = [int(v) for v in item.get("answer").split(",")]
       answer = item.get("answer_index")
       self.answer_idx.append(answer)
+      self.data_szie += 1
     self.context_idx = torch.Tensor(self.context_idx).long()
     self.question_idx = torch.Tensor(self.question_idx).long()
     self.answer_idx = torch.Tensor(self.answer_idx).long()

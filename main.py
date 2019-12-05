@@ -60,7 +60,9 @@ class EMA(object):
 @fn_timer(logger)
 def train(model, optimizer, scheduler, ema, dataset, start, length):
   model.train()
-  losses = []
+  clamped_losses = []
+  origin_losses = []
+  # clamped_losses = []
   logger.info("start train:")
   for i in tqdm(range(start, length + start), total=length):
     optimizer.zero_grad()
@@ -72,21 +74,22 @@ def train(model, optimizer, scheduler, ema, dataset, start, length):
     loss2 = F.nll_loss(p2, y2, reduction='mean')
     loss = (loss1 + loss2) / 2
     logger.info(f"Origin Loss: {loss}")
+    origin_losses.append(loss.item())
     loss = torch.clamp(loss, min=config.min_loss, max=config.max_loss)
     logger.info(f"Clamped Loss: {loss}")
-    losses.append(loss.item())
+    clamped_losses.append(loss.item())
     loss.backward()
     optimizer.step()
     scheduler.step()
     for name, p in model.named_parameters():
       if p.requires_grad: ema.update_parameter(name, p)
     # torch.nn.utils.clip_grad_norm_(model.parameters(), config.grad_clip)
-  loss_avg = np.mean(losses)
+  loss_avg = np.mean(clamped_losses)
   logger.info("STEP {:8d} loss {:8f}\n".format(i + 1, loss_avg))
-  return losses
+  return clamped_losses, origin_losses
 
 @fn_timer(logger)
-def valid(model, dataset, eval_file):
+def valid(model, dataset):
   model.eval()
   answer_dict = {}
   valid_result = []
@@ -126,7 +129,7 @@ def valid(model, dataset, eval_file):
 
 
 @fn_timer(logger)
-def test(model, dataset, eval_file):
+def test(model, dataset):
   model.eval()
   answer_dict = {}
   losses = []
@@ -177,8 +180,9 @@ def train_entry():
 
   # train_dataset = QADataSet(batch_size=config.batch_size)
   # dev_dataset = QADataSet(batch_size=config.batch_size)
-  train_dataset = get_dataset()
-  dev_dataset = get_dataset()
+  train_dataset = get_dataset("train")
+  dev_dataset = get_dataset("dev")
+  trial_dataset = get_dataset("trial")
   train_eval_file = read_data(config.train_eval_file)
   dev_eval_file = read_data(config.dev_eval_file)
 
@@ -206,11 +210,12 @@ def train_entry():
     logger.info(f"Epoch: {epoch}")
     for iter in range(config.continue_checkpoint + L, N, L):
       logger.info(f"Iter: {iter}")
-      loss_of_each_sample.extend(train(model, optimizer, scheduler, ema,
+      clamped_losses, origin_losses = train(model, optimizer, scheduler, ema,
                                        train_dataset, iter,
-                                       train_dataset.data_szie))
-      valid_result = valid(model, train_dataset, train_eval_file)
-      metrics = test(model, dev_dataset, dev_eval_file)
+                                       train_dataset.data_szie)
+      loss_of_each_sample.extend(origin_losses)
+      valid_result = valid(model, dev_dataset)
+      metrics = test(model, trial_dataset)
       logger.info("Learning rate: {}".format(scheduler.get_lr()))
       dev_f1 = metrics["f1"]
       dev_em = metrics["exact_match"]
