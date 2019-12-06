@@ -207,11 +207,11 @@ def record_info(losses, f1=[], em=[], valid_result={}, iter_num=0,
   f1 = [str(v) for v in f1]
   em = [str(v) for v in em]
   if losses:
-    write2file(",".join(losses), f"{dir_name}{losses}.txt")
+    write2file(",".join(losses), f"{dir_name}losses.txt")
   if f1:
-    write2file(",".join(f1), f"{dir_name}{f1}.txt")
+    write2file(",".join(f1), f"{dir_name}f1.txt")
   if em:
-    write2file(",".join(em), f"{dir_name}{em}.txt")
+    write2file(",".join(em), f"{dir_name}em.txt")
 
   if valid_result:
     writejson(valid_result, f"{dir_name}valid_result_{iter_num}.json")

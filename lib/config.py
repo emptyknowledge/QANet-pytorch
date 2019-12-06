@@ -49,7 +49,7 @@ char_count_limit = -1 #Min count for char
 
 is_continue = False
 model_dir = "./model"
-continue_checkpoint = 150
+continue_checkpoint = 0
 capacity = 15000 #Batch size of dataset shuffle
 num_threads = 4 #Number of threads in input pipeline
 is_bucket = False #build bucket batch iterator or not

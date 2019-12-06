@@ -11,7 +11,7 @@ from pytorch_transformers.convert_tf_checkpoint_to_pytorch import convert_tf_che
 
 def write2file(content, file_path, is_continue=True):
   """"""
-  if not os.path.dirname(file_path):
+  if not os.path.exists(os.path.dirname(file_path)):
     os.makedirs(os.path.dirname(file_path))
   mode = "w+" if is_continue else "w"
   with open(file_path, mode, encoding="utf-8")as f:
