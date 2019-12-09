@@ -55,7 +55,7 @@ num_threads = 4 #Number of threads in input pipeline
 is_bucket = False #build bucket batch iterator or not
 bucket_range = [40, 401, 40] #the range of bucket
 
-batch_size = 8 #Batch size
+batch_size = 11 #Batch size
 num_steps = 60000 #Number of steps
 checkpoint = 50 # 200 #checkpoint to save and evaluate the model
 period = 100 #period to save batch loss

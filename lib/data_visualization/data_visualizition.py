@@ -40,7 +40,7 @@ def view_point_data(data, color="blue", is_save=False, save_path=None,
     plt.show()
 
 if __name__ == "__main__":
-  data_path = "../../log/losses_log.txt"
+  data_path = "../../log/train/losses.txt"
   with open(data_path, "r", encoding="utf-8") as f:
     data = f.read()
   data = [float(v) for v in data.split(",")]

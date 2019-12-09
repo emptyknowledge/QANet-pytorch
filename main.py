@@ -86,7 +86,7 @@ def train(model, optimizer, scheduler, ema, dataset, start_step, steps_num, epoc
 
     if step % config.interval_save == 0:
       save_model(model, step)
-      record_info(origin_losses, r_type="train")
+      record_info(origin_losses, r_type="train", iter_num=step)
       origin_losses = []
   loss_avg = np.mean(clamped_losses)
   logger.info("Epoch {:8d} loss {:8f}\n".format(epoch, loss_avg))
@@ -201,7 +201,6 @@ def train_entry():
   N = config.num_steps
   epochs = config.epochs
   best_f1 = best_em = patience = 0
-  loss_of_each_sample = []
   start_index = 0 if not config.is_continue else config.continue_checkpoint
   for epoch in range(epochs):
     logger.info(f"Epoch: {epoch}")
