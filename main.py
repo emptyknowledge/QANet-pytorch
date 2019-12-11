@@ -97,6 +97,15 @@ def valid(model, dataset):
   valid_result = []
   losses = []
   logger.info("start valid:")
+  loss, metrics = test_model(dataset, losses, model, valid_result)
+  record_info(losses, f1=[metrics["f1"]], em=[metrics["exact_match"]],
+              valid_result=valid_result,
+              r_type="valid")
+  logger.info("VALID loss {:8f} F1 {:8f} EM {:8f}\n".format(loss, metrics["f1"],
+                                                            metrics["exact_match"]))
+
+
+def test_model(dataset, losses, model, valid_result):
   with torch.no_grad():
     for i in tqdm(range(0, config.val_num_steps), total=config.val_num_steps):
       Cwid, Qwid, answer = dataset[i]
@@ -110,21 +119,18 @@ def valid(model, dataset):
       loss = (loss1 + loss2) / 2
       losses.append(loss.item())
       # TODO: 这里不能直接使用 argmax, 应该找 p1(start) * p2(end) 值最大且 start < end
-      yp1 = torch.argmax(p1, 1)
-      yp2 = torch.argmax(p2, 1)
-      yps = torch.stack([yp1, yp2], dim=1)
-      ymin, _ = torch.min(yps, 1)
-      ymax, _ = torch.max(yps, 1)
+      # yp1 = torch.argmax(p1, 1)
+      # yp2 = torch.argmax(p2, 1)
+      # yps = torch.stack([yp1, yp2], dim=1)
+      # ymin, _ = torch.min(yps, 1)
+      # ymax, _ = torch.max(yps, 1)
+      y_min, y_max, _ = find_max_porper(p1, p2)
       valid_result.extend(
-        convert_valid_result(Cwid, Qwid, y1, y2, yp1, yp2, dataset))
+        convert_valid_result(Cwid, Qwid, y1, y2, p1, p2, dataset))
   loss = np.mean(losses)
   metrics = evaluate_valid_result(valid_result)
   metrics["loss"] = loss
-  record_info(losses, f1=[metrics["f1"]], em=[metrics["exact_match"]],
-              valid_result=valid_result,
-              r_type="valid")
-  logger.info("VALID loss {:8f} F1 {:8f} EM {:8f}\n".format(loss, metrics["f1"],
-                                                            metrics["exact_match"]))
+  return loss, metrics
 
 
 @fn_timer(logger)
@@ -133,33 +139,7 @@ def test(model, dataset):
   losses = []
   valid_result = []
   print("start test:")
-  with torch.no_grad():
-    for i in tqdm(range(config.test_num_steps), total=config.test_num_steps):
-      Cwid, Qwid, answer = dataset[i]
-      Cwid, Qwid = Cwid.to(device), Qwid.to(device)
-      y1, y2 = answer[:, 0].view(-1).to(device), answer[:, 1].view(-1).to(
-        device)
-      p1, p2 = model(Cwid, Qwid)
-      y1, y2 = y1.to(device), y2.to(device)
-      p1, p2 = model(Cwid, Qwid)
-      y1, y2 = y1.to(device), y2.to(device)
-      loss1 = F.nll_loss(p1, y1, reduction='mean')
-      loss2 = F.nll_loss(p2, y2, reduction='mean')
-      loss = (loss1 + loss2) / 2
-      losses.append(loss.item())
-      yp1 = torch.argmax(p1, 1)
-      yp2 = torch.argmax(p2, 1)
-      yps = torch.stack([yp1, yp2], dim=1)
-      ymin, _ = torch.min(yps, 1)
-      ymax, _ = torch.max(yps, 1)
-      valid_result.extend(
-        convert_valid_result(Cwid, Qwid, y1, y2, yp1, yp2, dataset))
-      # answer_dict_, _ = convert_tokens(eval_file, ids.tolist(), ymin.tolist(), ymax.tolist())
-      # answer_dict.update(answer_dict_)
-  loss = np.mean(losses)
-  # metrics = evaluate(eval_file, answer_dict)
-  metrics = evaluate_valid_result(valid_result)
-  metrics["loss"] = loss
+  loss, metrics = test_model(dataset, losses, model, valid_result)
   record_info(losses,f1=[metrics["f1"]], em=[metrics["exact_match"]],
               valid_result=valid_result, r_type="test")
   print("TEST loss {:8f} F1 {:8f} EM {:8f}\n".format(loss, metrics["f1"],
@@ -207,7 +187,7 @@ def train_entry():
     # for iter in range(config.continue_checkpoint + L, N, L):
     # logger.info(f"Iter: {iter}")
     train(model, optimizer, scheduler, ema, train_dataset, start_index,
-                                     train_dataset.data_szie, epoch)
+          train_dataset.data_szie, epoch)
     valid(model, dev_dataset)
     metrics = test(model, trial_dataset)
     logger.info("Learning rate: {}".format(scheduler.get_lr()))

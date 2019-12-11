@@ -18,19 +18,37 @@ def write2file(content, file_path, is_continue=True):
     f.write("\n" + content)
 
 
-def find_max_porper(a_softmax, b_softmax):
-  b_temp = []
-  for i in range(0, b_softmax.shape[0]):
-    b_temp.append(torch.argmax(b_softmax[i:]) + i)
+
+def find_max_porper(start_index_softmax, end_index_softmax):
+  """
+  根据 start index 与 end index 的 softmax 找出最大的联合概率: max(start_index_pro * end_index_pro)
+  Args:
+    start_index_softmax():
+    end_index_softmax():
+
+  Returns:
+
+  """
+  # b_max_pro_index[index] mean: b_softmax[index:] 中可能性最大位置的下标.
+  b_max_pro_index = [-1] * end_index_softmax.shape[0]
+  b_max_pro = -1
+  b_max_index = -1
+  for index in range(end_index_softmax.shape[0] - 1, -1, -1): # 0.1 左右
+    if end_index_softmax[index] > b_max_pro:
+      b_max_pro = end_index_softmax[index]
+      b_max_index = index
+    b_max_pro_index[index] = b_max_index
+
 
   max_start_index = -1
   max_end_index = -1
   max_pro = -1
-  for start_index in range(a_softmax.shape[0]):
-    max_start_pro = a_softmax[start_index]
-    max_pro_end_index = b_temp[start_index]
-    max_end_pro = b_softmax[max_pro_end_index]
-    cur_max_pro = max_start_pro * max_end_pro # Todo: 测试下 * 和 torch.mul 的效率
+  for start_index in range(start_index_softmax.shape[0]):
+    max_start_pro = start_index_softmax[start_index]
+    max_pro_end_index = b_max_pro_index[start_index]
+    max_end_pro = end_index_softmax[max_pro_end_index]
+    #  * 和 torch.mul 执行时间差不多
+    cur_max_pro = torch.mul(max_start_pro, max_end_pro)
     if cur_max_pro > max_pro:
       max_pro = cur_max_pro
       max_start_index = start_index
