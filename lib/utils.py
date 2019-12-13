@@ -17,14 +17,35 @@ def write2file(content, file_path, is_continue=True):
   with open(file_path, mode, encoding="utf-8")as f:
     f.write("\n" + content)
 
+def find_max_proper_batch(start_softmax, end_softmax):
+  """
+
+  Args:
+    start_softmax(batch_size, dim):
+    end_softmax(batch_size, dim):
+
+  Returns:
+
+  """
+  start_index = []
+  end_index = []
+  max_pro = []
+  for index in start_softmax.shape[0]:
+    start, end, pro = find_max_porper(start_softmax[index], end_softmax[index])
+    start_index.append(start)
+    end_index.append(end_index)
+    max_pro.append(pro)
+
+  return start_index, end_index, max_pro
+
 
 
 def find_max_porper(start_index_softmax, end_index_softmax):
   """
   根据 start index 与 end index 的 softmax 找出最大的联合概率: max(start_index_pro * end_index_pro)
   Args:
-    start_index_softmax():
-    end_index_softmax():
+    start_index_softmax(dim):
+    end_index_softmax(dim):
 
   Returns:
 

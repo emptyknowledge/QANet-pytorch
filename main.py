@@ -66,7 +66,7 @@ def train(model, optimizer, scheduler, ema, dataset, start_step, steps_num, epoc
   logger.info("start_step train:")
   for step in tqdm(range(start_step, steps_num + start_step), total=steps_num):
     optimizer.zero_grad()
-    Cwid, Qwid, answer = dataset[step]
+    Cwid, Qwid, answer, ids = dataset[step]
     Cwid, Qwid = Cwid.to(device), Qwid.to(device)
     p1, p2 = model(Cwid, Qwid)
     y1, y2 = answer[:, 0].view(-1).to(device), answer[:, 1].view(-1).to(device)
@@ -108,7 +108,7 @@ def valid(model, dataset):
 def test_model(dataset, losses, model, valid_result):
   with torch.no_grad():
     for i in tqdm(range(0, config.val_num_steps), total=config.val_num_steps):
-      Cwid, Qwid, answer = dataset[i]
+      Cwid, Qwid, answer, ids = dataset[i]
       Cwid, Qwid = Cwid.to(device), Qwid.to(device)
       y1, y2 = answer[:, 0].view(-1).to(device), answer[:, 1].view(-1).to(
         device)
@@ -124,9 +124,9 @@ def test_model(dataset, losses, model, valid_result):
       # yps = torch.stack([yp1, yp2], dim=1)
       # ymin, _ = torch.min(yps, 1)
       # ymax, _ = torch.max(yps, 1)
-      y_min, y_max, _ = find_max_porper(p1, p2)
+      y_min, y_max, _ = find_max_proper_batch(p1, p2)
       valid_result.extend(
-        convert_valid_result(Cwid, Qwid, y1, y2, p1, p2, dataset))
+        convert_valid_result(Cwid, Qwid, y1, y2, p1, p2, dataset, ids))
   loss = np.mean(losses)
   metrics = evaluate_valid_result(valid_result)
   metrics["loss"] = loss
@@ -187,7 +187,8 @@ def train_entry():
     # for iter in range(config.continue_checkpoint + L, N, L):
     # logger.info(f"Iter: {iter}")
     train(model, optimizer, scheduler, ema, train_dataset, start_index,
-          train_dataset.data_szie, epoch)
+          # train_dataset.data_szie, epoch)
+          1, epoch)
     valid(model, dev_dataset)
     metrics = test(model, trial_dataset)
     logger.info("Learning rate: {}".format(scheduler.get_lr()))

@@ -20,6 +20,7 @@ def read_data(path):
 class CMRC_QADataSet(Dataset):
   def __init__(self, data_path="./data/train/cmrc2018/train.json",
                batch_size=1, context_len=512, question_len=20):
+    self.data_path = data_path
     self.bert_embedding = BertEmbedding(config.bert_path)
     data = read_data(data_path)
     self.context_len = context_len
@@ -27,15 +28,17 @@ class CMRC_QADataSet(Dataset):
     self.context_idx = []
     self.question_idx = []
     self.answer_idx = []
+    self.ids = []
     self.batch_size = batch_size
     self.data_szie = 0
-    for item in data:
+    for ids, item in enumerate(data):
       if not self.check_data(item):
         continue
       self.context_idx.append(self.padarr(self.bert_embedding.encode(item.get("context")),
                                           self.context_len))
       self.question_idx.append(self.padarr(self.bert_embedding.encode(item.get("question")),
                                            self.question_len))
+      self.ids.append(ids)
       # answer = [int(v) for v in item.get("answer").split(",")]
       answer = item.get("answer_index")
       self.answer_idx.append(answer)
@@ -43,6 +46,7 @@ class CMRC_QADataSet(Dataset):
     self.context_idx = torch.Tensor(self.context_idx).long()
     self.question_idx = torch.Tensor(self.question_idx).long()
     self.answer_idx = torch.Tensor(self.answer_idx).long()
+    self.ids = torch.Tensor(self.ids).long()
   
     self.idx = list(range(self.data_szie))
     if self.batch_size > self.data_szie:
@@ -71,7 +75,8 @@ class CMRC_QADataSet(Dataset):
     index = torch.tensor(index).long()
     return (self.context_idx[index],
             self.question_idx[index],
-            self.answer_idx[index])
+            self.answer_idx[index],
+            self.ids[index])
 
   def __len__(self):
     return self.data_szie
@@ -86,6 +91,15 @@ class CMRC_QADataSet(Dataset):
 
   def idx2multi_text(self, idx):
     return self.bert_embedding.decode2multi_text(idx)
+
     
+  def get_origin_data(self, ids, key="context"):
+    """"""
+    # result = []
+    data = read_data(self.data_path)
+    return data[ids].get(key)
+    # for i in ids:
+    #   result.append(data[i].get(key))
+    # return result
 
 
