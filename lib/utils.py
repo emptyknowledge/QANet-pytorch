@@ -13,7 +13,7 @@ def write2file(content, file_path, is_continue=True):
   """"""
   if not os.path.exists(os.path.dirname(file_path)):
     os.makedirs(os.path.dirname(file_path))
-  mode = "w+" if is_continue else "w"
+  mode = "a" if is_continue else "w"
   with open(file_path, mode, encoding="utf-8")as f:
     f.write("\n" + content)
 

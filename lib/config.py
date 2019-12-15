@@ -56,7 +56,7 @@ is_bucket = False #build bucket batch iterator or not
 bucket_range = [40, 401, 40] #the range of bucket
 
 batch_size = 11 #Batch size
-num_steps = 1 #Number of steps
+num_steps = 1000 #Number of steps
 checkpoint = 50 # 200 #checkpoint to save and evaluate the model
 period = 100 #period to save batch loss
 val_num_batches = 10 #Number of batches to evaluate the model
