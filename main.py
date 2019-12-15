@@ -114,8 +114,8 @@ def test_model(dataset, losses, model, valid_result):
         device)
       p1, p2 = model(Cwid, Qwid)
       y1, y2 = y1.to(device), y2.to(device)
-      loss1 = F.nll_loss(p1, y1, reduction='mean')
-      loss2 = F.nll_loss(p2, y2, reduction='mean')
+      loss1 = F.nll_loss(torch.log(p1), y1, reduction='mean')
+      loss2 = F.nll_loss(torch.log(p2), y2, reduction='mean')
       loss = (loss1 + loss2) / 2
       losses.append(loss.item())
       # TODO: 这里不能直接使用 argmax, 应该找 p1(start) * p2(end) 值最大且 start < end
@@ -124,9 +124,9 @@ def test_model(dataset, losses, model, valid_result):
       # yps = torch.stack([yp1, yp2], dim=1)
       # ymin, _ = torch.min(yps, 1)
       # ymax, _ = torch.max(yps, 1)
-      y_min, y_max, _ = find_max_proper_batch(p1, p2)
+      pre_start, pre_end, _ = find_max_proper_batch(p1, p2)
       valid_result.extend(
-        convert_valid_result(Cwid, Qwid, y1, y2, p1, p2, dataset, ids))
+        convert_valid_result(Cwid, Qwid, y1, y2, pre_start, pre_end, dataset, ids))
   loss = np.mean(losses)
   metrics = evaluate_valid_result(valid_result)
   metrics["loss"] = loss

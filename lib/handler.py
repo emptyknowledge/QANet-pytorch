@@ -115,10 +115,10 @@ def metric_max_over_ground_truths(metric_fn, prediction, ground_truths):
 def convert_valid_result(Cwids, Qwids, y1s, y2s, p1s, p2s, dataset, ids):
   """"""
   result = []
-  for Cwid, Qwid, y1, y2, p1, p2 in zip(Cwids, Qwids, y1s, y2s, p1s, p2s, ids):
-    Cw_text = dataset.get_origin_data(ids, "context")
-    Qw_text = dataset.get_origin_data(ids, "question")
-    Aw_text = dataset.get_origin_data(ids, "question")
+  for Cwid, Qwid, y1, y2, p1, p2, id in zip(Cwids, Qwids, y1s, y2s, p1s, p2s, ids):
+    Cw_text = dataset.get_origin_data(id, "context")
+    Qw_text = dataset.get_origin_data(id, "question")
+    Aw_text = dataset.get_origin_data(id, "answer_text")
     # y1, y2 = int(y1), int(y2)
     p1, p2 = int(p1), int(p2)
     result.append({

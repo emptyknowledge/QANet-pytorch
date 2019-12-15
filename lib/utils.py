@@ -30,10 +30,10 @@ def find_max_proper_batch(start_softmax, end_softmax):
   start_index = []
   end_index = []
   max_pro = []
-  for index in start_softmax.shape[0]:
+  for index in range(start_softmax.shape[0]):
     start, end, pro = find_max_porper(start_softmax[index], end_softmax[index])
     start_index.append(start)
-    end_index.append(end_index)
+    end_index.append(end)
     max_pro.append(pro)
 
   return start_index, end_index, max_pro
@@ -85,3 +85,11 @@ def tf2torch():
   Returns:
 
   """
+
+
+def test():
+  path = "./test.txt"
+  write2file("11", path)
+
+if __name__ == "__main__":
+  test()
