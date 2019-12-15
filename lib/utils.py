@@ -77,6 +77,9 @@ def find_max_porper(start_index_softmax, end_index_softmax):
 
   return max_start_index, max_end_index, max_pro
 
+def get_first_non_negative(arr, reverse=False):
+  pass
+
 def tf2torch():
   """
   convert_tf_checkpoint_to_pytorch(r"\model\chinese_L-12_H-768_A-12\bert_model.ckpt",
@@ -93,3 +96,4 @@ def test():
 
 if __name__ == "__main__":
   test()
+

@@ -216,3 +216,53 @@ def record_info(losses, f1=[], em=[], valid_result={}, iter_num=0,
 
   if valid_result:
     writejson(valid_result, f"{dir_name}valid_result_{iter_num}.json")
+
+
+def corresponds_index(origin, new_word):
+  """
+  将 BertTokenizer.tokenize 出的 token 与原始字符串对应回去，
+  主要处理情况：对英文切割不好(eg: luminoso 被拆分为：'lu', '##min', '##os', '##o',)，在使用了原始句子下标(index)的情况下，
+  BertTokenizer.tokenize 后结果与 index 与原句对应不上， index 是错误数据。
+  Args:
+    origin(list):
+    new_word(list):
+
+  Returns:
+
+  """
+  posi_index = []
+  index_in_origin = 0
+  origin_len = len(origin)
+  for index, char in enumerate(new_word):
+    if index_in_origin== origin_len - 1 or re.search("\w", char):
+      posi_index += -1
+      continue
+
+    for j in range(index_in_origin, origin_len):
+      if char == origin[j]:
+        posi_index.append(j)
+        break
+  while len(index_in_origin) < origin_len:
+    index_in_origin.append(-1)
+
+  return posi_index
+
+def transfer_index(origin_content, tokenize_content, *index):
+  """
+  将 origin content 中的 index 映射到 tokenize_content 中的 Index.
+  Args:
+    origin_content:
+    tokenize_content:
+    *index:
+
+  Returns:
+
+  """
+  corr_index = corresponds_index(origin_content, tokenize_content)
+  result = []
+  for i in index:
+    if corr_index[i] > -1:
+      result.append(corr_index[i])
+    else:
+      for i in range(i, -1, -1):
+        pass

@@ -6,3 +6,4 @@ msgpack-numpy
 tqdm >= 4.23.4
 ujson >= 1.35
 tensorboard
+torchsnooper

@@ -15,7 +15,7 @@ d_char = config.bert_dim
 batch_size = config.batch_size
 dropout = config.dropout
 dropout_char = config.dropout_char
-
+1
 d_k = d_model // n_head
 d_cq = d_model * 4
 len_c = config.para_limit
