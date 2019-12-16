@@ -253,6 +253,7 @@ def corresponds_index(origin, token):
 def transfer_index(origin_content, tokenize_content, *indexes):
   """
   将 origin content 中的 index 映射到 tokenize_content 中的 Index.
+  TODO: 目前英文单词后面紧结数字，返回 index 不对, 待修复。
   Args:
     origin_content:
     tokenize_content:
