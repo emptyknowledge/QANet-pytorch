@@ -14,7 +14,7 @@ from lib.CMRC_QADataSet import CMRC_QADataSet
 from lib.QADataSet import QADataSet
 from lib.config import logger
 from my_py_toolkit.file.file_toolkit import *
-from lib.utils import write2file
+from lib.utils import *
 from my_py_toolkit.decorator.decorator import fn_timer
 
 
@@ -218,51 +218,58 @@ def record_info(losses, f1=[], em=[], valid_result={}, iter_num=0,
     writejson(valid_result, f"{dir_name}valid_result_{iter_num}.json")
 
 
-def corresponds_index(origin, new_word):
+def corresponds_index(origin, token):
   """
   将 BertTokenizer.tokenize 出的 token 与原始字符串对应回去，
-  主要处理情况：对英文切割不好(eg: luminoso 被拆分为：'lu', '##min', '##os', '##o',)，在使用了原始句子下标(index)的情况下，
-  BertTokenizer.tokenize 后结果与 index 与原句对应不上， index 是错误数据。
+  主要处理情况：对英文切割不好(eg: luminoso 被拆分为：'lu', '##min', '##os', '##o',)，
+  在使用了原始句子下标(index)的情况下，
+  BertTokenizer.tokenize 后结果 index 与原句对应不上， index 需要纠正。
   Args:
     origin(list):
-    new_word(list):
+    token(list):
 
   Returns:
 
   """
-  posi_index = []
-  index_in_origin = 0
-  origin_len = len(origin)
-  for index, char in enumerate(new_word):
-    if index_in_origin== origin_len - 1 or re.search("\w", char):
-      posi_index += -1
+  origin_index_in_token = []
+  index_in_token = 0
+  token_len = len(token)
+  for index, char in enumerate(origin):
+    if index_in_token > token_len - 1 or re.search("[a-zA-Z\d]", char):
+      origin_index_in_token.append(-1)
       continue
 
-    for j in range(index_in_origin, origin_len):
-      if char == origin[j]:
-        posi_index.append(j)
+    for j in range(index_in_token, token_len):
+      if char == token[j]:
+        origin_index_in_token.append(j)
+        index_in_token = j
         break
-  while len(index_in_origin) < origin_len:
-    index_in_origin.append(-1)
 
-  return posi_index
+    while len(origin_index_in_token) < index + 1:
+      origin_index_in_token.append(-1)
 
-def transfer_index(origin_content, tokenize_content, *index):
+  return origin_index_in_token
+
+def transfer_index(origin_content, tokenize_content, *indexes):
   """
   将 origin content 中的 index 映射到 tokenize_content 中的 Index.
   Args:
     origin_content:
     tokenize_content:
-    *index:
+    *indexes:
 
   Returns:
 
   """
-  corr_index = corresponds_index(origin_content, tokenize_content)
+  text_index_in_token = corresponds_index(origin_content, tokenize_content)
   result = []
-  for i in index:
-    if corr_index[i] > -1:
-      result.append(corr_index[i])
+  for i in indexes:
+    if text_index_in_token[i] > -1:
+      result.append(text_index_in_token[i])
     else:
-      for i in range(i, -1, -1):
-        pass
+      first_non_negative_index = get_first_non_negative_index(text_index_in_token[:i], reverse=True)
+      if first_non_negative_index > -1:
+        result.append(text_index_in_token[first_non_negative_index] + 1)
+      else:
+        result.append(-1)
+  return result

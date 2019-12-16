@@ -77,8 +77,46 @@ def find_max_porper(start_index_softmax, end_index_softmax):
 
   return max_start_index, max_end_index, max_pro
 
-def get_first_non_negative(arr, reverse=False):
-  pass
+def get_first_non_negative_index(arr, reverse=False):
+  """
+  获取 arr 中第一个非负值的索引. reverse 控制反向查找或正向查找
+  Args:
+    arr(list):
+    reverse:
+
+  Returns:
+
+  """
+  return get_first_index_greater_than_benchmark(arr, -1, reverse)
+
+
+def get_first_index_greater_than_benchmark(arr, benchmark, reverse=False):
+  """
+  获取在数组 arr 中第一个大于基准值的索引。reverse 控制反向查找或正向查找
+  Args:
+    arr(list):
+    benchmark():
+    reverse(bool):
+
+  Returns:
+
+  """
+  if reverse:
+    start = len(arr) - 1
+    stop = -1
+    step = -1
+  else:
+    start = 0
+    stop = len(arr)
+    step = 1
+
+  for i in range(start, stop, step):
+    if arr[i] > benchmark:
+      return i
+
+  return -1
+
+
 
 def tf2torch():
   """
@@ -91,8 +129,10 @@ def tf2torch():
 
 
 def test():
-  path = "./test.txt"
-  write2file("11", path)
+  import random
+  a = [random.randrange(-1, 1) for i in range(10)]
+  print(a)
+  print(get_first_non_negative_index(a, True))
 
 if __name__ == "__main__":
   test()
