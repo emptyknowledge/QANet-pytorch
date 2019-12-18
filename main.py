@@ -187,8 +187,8 @@ def train_entry():
     # for iter in range(config.continue_checkpoint + L, N, L):
     # logger.info(f"Iter: {iter}")
     train(model, optimizer, scheduler, ema, train_dataset, start_index,
-          # train_dataset.data_szie, epoch)
-          1, epoch)
+          train_dataset.data_szie, epoch)
+          # 1, epoch)
     valid(model, dev_dataset)
     metrics = test(model, trial_dataset)
     logger.info("Learning rate: {}".format(scheduler.get_lr()))
