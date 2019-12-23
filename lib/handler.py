@@ -85,10 +85,19 @@ def normalize_answer(s):
 
 
 def f1_score(prediction, ground_truth):
+  """
+
+  Args:
+    prediction(str):
+    ground_truth(str):
+
+  Returns:
+
+  """
   # prediction_tokens = normalize_answer(prediction).split()
   # ground_truth_tokens = normalize_answer(ground_truth).split()
-  prediction_tokens = prediction.split()
-  ground_truth_tokens = ground_truth.split()
+  prediction_tokens = list(prediction)
+  ground_truth_tokens = list(ground_truth)
   common = Counter(prediction_tokens) & Counter(ground_truth_tokens)
   num_same = sum(common.values())
   if num_same == 0:
@@ -105,11 +114,23 @@ def exact_match_score(prediction, ground_truth):
 
 
 def metric_max_over_ground_truths(metric_fn, prediction, ground_truths):
-  scores_for_ground_truths = []
-  for ground_truth in ground_truths:
-    score = metric_fn(prediction, ground_truth)
-    scores_for_ground_truths.append(score)
-  return max(scores_for_ground_truths)
+  """
+  计算准确率.
+  Args:
+    metric_fn:
+    prediction(str):
+    ground_truths(str):
+
+  Returns:
+
+  """
+  # todo: 代码有问题需要修改
+  # scores_for_ground_truths = []
+  # for ground_truth in ground_truths:
+  #   score = metric_fn(prediction, ground_truth)
+  #   scores_for_ground_truths.append(score)
+  # return max(scores_for_ground_truths)
+  return metric_fn(prediction, ground_truths)
 
 
 def convert_valid_result(Cwids, Qwids, y1s, y2s, p1s, p2s, dataset, ids):

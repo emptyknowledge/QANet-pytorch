@@ -184,11 +184,8 @@ def train_entry():
   start_index = 0 if not config.is_continue else config.continue_checkpoint
   for epoch in range(epochs):
     logger.info(f"Epoch: {epoch}")
-    # for iter in range(config.continue_checkpoint + L, N, L):
-    # logger.info(f"Iter: {iter}")
     train(model, optimizer, scheduler, ema, train_dataset, start_index,
           train_dataset.data_szie, epoch)
-          # 1, epoch)
     valid(model, dev_dataset)
     metrics = test(model, trial_dataset)
     logger.info("Learning rate: {}".format(scheduler.get_lr()))
