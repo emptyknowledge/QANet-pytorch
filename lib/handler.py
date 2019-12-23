@@ -182,13 +182,15 @@ def get_model():
       model.load_state_dict(torch.load(model_path))
     return model
   
-def save_model(model, steps=0):
+def save_model(model, data_set, steps=0):
   model_path = os.path.join(config.model_dir, f"model_{str(steps)}.pkl")
   make_path_legal(model_path)
   if not config.is_only_save_params:
     torch.save(model, model_path)
+    torch.save(data_set.trainable_embedding, config.embedding_trainable_model)
   else:
     torch.save(model.state_dict(), model_path)
+    torch.save(data_set.trainable_embedding, config.embedding_trainable_model)
 
 @fn_timer(logger)
 def get_dataset(data_type="train"):

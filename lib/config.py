@@ -39,6 +39,8 @@ glove_word_size = int(2.2e6) #Corpus size for Glove
 glove_dim = 300 #Embedding dimension for Glove
 char_dim = 64 #Embedding dimension for char
 bert_dim = 1024 #Embedding dimension for char
+embedding_trainable_dim = 512 # 可训练词向量维度
+embedding_trainable_model = "./model/embedding_trainable_model.bin" # 可训练词向量维度
 
 para_limit = 512 #Limit length for paragraph
 ques_limit = 20 #Limit length for question
