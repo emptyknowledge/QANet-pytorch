@@ -42,7 +42,10 @@ class CMRC_QADataSet(Dataset):
       self.question_idx.append(self.padarr(self.bert_embedding.encode(item.get("question")),
                                            self.question_len))
 
-
+      self.context_trainable_idx.append(self.padarr(self.encode_with_trainable_embedding(item.get("context")),
+                                          self.context_len))
+      self.question_trainable_idx.append(self.padarr(self.encode_with_trainable_embedding(item.get("question")),
+                                           self.question_len))
       self.ids.append(ids)
       # answer = [int(v) for v in item.get("answer").split(",")]
       answer = item.get("answer_index")
@@ -68,6 +71,7 @@ class CMRC_QADataSet(Dataset):
 
   def __getitem__(self, item):
     # index = self.idx[(item * self.batch_size) % self.data_szie: ((item + 1) * self.batch_size) % self.data_szie]
+    # TODO: return trainable embedding.
     if self.batch_size > len(self.idx):
       index = self.idx[(item * self.batch_size) % self.data_szie]
     else:
@@ -131,5 +135,6 @@ class CMRC_QADataSet(Dataset):
     Returns:
 
     """
-    ids = self.bert_embedding.tokenizer
+    ids = self.bert_embedding.encode2torch(text)
+    return self.trainable_embedding[ids]
 
