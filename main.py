@@ -85,7 +85,7 @@ def train(model, optimizer, scheduler, ema, dataset, start_step, steps_num, epoc
       if p.requires_grad: ema.update_parameter(name, p)
 
     if step % config.interval_save == 0:
-      save_model(model, step)
+      save_model(model, dataset, step)
       record_info(origin_losses, r_type="train", iter_num=step)
       origin_losses = []
   loss_avg = np.mean(clamped_losses)

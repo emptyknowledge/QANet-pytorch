@@ -74,8 +74,9 @@ def test_bert():
   # print(transfer_index(text, token, 2, 3, 9, 10))
 
 def test():
-  a = torch.randn(3)
+  a = torch.Tensor(3,3)
+  a = torch.nn.init.normal_(torch.Tensor(3,3))
   print(a)
 
 if __name__ == "__main__":
-  test_bert()
+  test()

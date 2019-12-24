@@ -48,3 +48,7 @@ class BertEmbedding():
     for val in idxs:
       result.append(self.decode2text(val))
     return result
+
+  @property
+  def vocab_size(self):
+    return self.tokenizer.vocab_size
