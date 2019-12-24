@@ -49,7 +49,7 @@ char_limit = 16 #Limit length for character
 word_count_limit = -1 #Min count for word
 char_count_limit = -1 #Min count for char
 
-is_continue = True
+is_continue = False
 model_dir = "./model"
 continue_checkpoint = 2150
 capacity = 15000 #Batch size of dataset shuffle

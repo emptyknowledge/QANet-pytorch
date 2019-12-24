@@ -75,8 +75,9 @@ def test_bert():
 
 def test():
   a = torch.Tensor(3,3)
-  a = torch.nn.init.normal_(torch.Tensor(3,3))
-  print(a)
+  b = torch.Tensor(3,3)
+  # a = torch.nn.init.normal_(torch.Tensor(3,3))
+  print(torch.cat((a,b), -1))
 
 if __name__ == "__main__":
   test()

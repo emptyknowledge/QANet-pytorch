@@ -22,7 +22,6 @@ class CMRC_QADataSet(Dataset):
                batch_size=1, context_len=512, question_len=20):
     self.data_path = data_path
     self.bert_embedding = BertEmbedding(config.bert_path)
-    self.trainable_embedding = self.get_trainable_embedding()
     data = read_data(data_path)
     self.context_len = context_len
     self.question_len = question_len
@@ -42,12 +41,7 @@ class CMRC_QADataSet(Dataset):
       self.question_idx.append(self.padarr(self.bert_embedding.encode(item.get("question")),
                                            self.question_len))
 
-      self.context_trainable_idx.append(self.padarr(self.encode_with_trainable_embedding(item.get("context")),
-                                          self.context_len))
-      self.question_trainable_idx.append(self.padarr(self.encode_with_trainable_embedding(item.get("question")),
-                                           self.question_len))
       self.ids.append(ids)
-      # answer = [int(v) for v in item.get("answer").split(",")]
       answer = item.get("answer_index")
       self.answer_idx.append(answer)
       self.data_szie += 1
@@ -111,30 +105,4 @@ class CMRC_QADataSet(Dataset):
     #   result.append(data[i].get(key))
     # return result
 
-  def get_trainable_embedding(self):
-    """
-    获取可训练 embedding.
-    Returns:
-
-    """
-    if not config.is_continue:
-      # torch.nn.init.normal_(torch.Tensor(3,3)).requires_grad_(True)
-      embedding = torch.Tensor(self.bert_embedding.vocab_size, config.embedding_trainable_dim)
-      embedding = torch.nn.init.normal_(embedding).requires_grad_(True)
-      return embedding
-    else:
-      return torch.load(config.embedding_trainable_model).requires_grad_(True).to(config.device)
-
-
-  def encode_with_trainable_embedding(self, text):
-    """
-    用 trainable embedding 编码文本.
-    Args:
-      text:
-
-    Returns:
-
-    """
-    ids = self.bert_embedding.encode2torch(text)
-    return self.trainable_embedding[ids]
 

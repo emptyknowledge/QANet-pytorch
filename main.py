@@ -85,7 +85,7 @@ def train(model, optimizer, scheduler, ema, dataset, start_step, steps_num, epoc
       if p.requires_grad: ema.update_parameter(name, p)
 
     if step % config.interval_save == 0:
-      save_model(model, dataset, step)
+      save_model(model, step)
       record_info(origin_losses, r_type="train", iter_num=step)
       origin_losses = []
   loss_avg = np.mean(clamped_losses)
@@ -185,7 +185,8 @@ def train_entry():
   for epoch in range(epochs):
     logger.info(f"Epoch: {epoch}")
     train(model, optimizer, scheduler, ema, train_dataset, start_index,
-          train_dataset.data_szie, epoch)
+          # train_dataset.data_szie, epoch)
+          1, epoch) # todo: debug 完删掉
     valid(model, dev_dataset)
     metrics = test(model, trial_dataset)
     logger.info("Learning rate: {}".format(scheduler.get_lr()))

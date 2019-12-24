@@ -12,6 +12,7 @@ d_model = config.d_model
 n_head = config.num_heads
 d_word = config.bert_dim
 d_char = config.bert_dim
+d_trainable_emb = config.embedding_trainable_dim
 batch_size = config.batch_size
 dropout = config.dropout
 dropout_char = config.dropout_char
@@ -30,9 +31,9 @@ class PosEncoder(nn.Module):
     def __init__(self, length):
         super().__init__()
         freqs = torch.Tensor(
-            [10000 ** (-i / d_model) if i % 2 == 0 else -10000 ** ((1 - i) / d_model) for i in range(d_model)]).unsqueeze(dim=1)
-        phases = torch.Tensor([0 if i % 2 == 0 else math.pi / 2 for i in range(d_model)]).unsqueeze(dim=1)
-        pos = torch.arange(length).repeat(d_model, 1).to(torch.float)
+            [10000 ** (-i / d_model+d_trainable_emb) if i % 2 == 0 else -10000 ** ((1 - i) / d_model + d_trainable_emb) for i in range(d_model + d_trainable_emb)]).unsqueeze(dim=1)
+        phases = torch.Tensor([0 if i % 2 == 0 else math.pi / 2 for i in range(d_model + d_trainable_emb)]).unsqueeze(dim=1)
+        pos = torch.arange(length).repeat(d_model + d_trainable_emb, 1).to(torch.float)
         self.pos_encoding = nn.Parameter(torch.sin(torch.add(torch.mul(pos, freqs), phases)), requires_grad=False)
 
     def forward(self, x):
@@ -157,8 +158,10 @@ class MultiHeadAttention(nn.Module):
 class Embedding(nn.Module):
     def __init__(self):
         super().__init__()
-        self.conv2d = DepthwiseSeparableConv(d_char, d_char, 5, dim=1)
-        self.high = Highway(2, d_word)
+        self.conv2d = DepthwiseSeparableConv(d_char + d_trainable_emb,
+                                             d_char + d_trainable_emb,
+                                             5, dim=1)
+        self.high = Highway(2, d_word + d_trainable_emb)
 
     def forward(self, wd_emb):
         # ch_emb = ch_emb.permute(0, 3, 1, 2)
@@ -218,8 +221,8 @@ class EncoderBlock(nn.Module):
 class CQAttention(nn.Module):
     def __init__(self):
         super().__init__()
-        w = torch.empty(d_model * 3)
-        lim = 1 / d_model
+        w = torch.empty((d_model + d_trainable_emb) * 3)
+        lim = 1 / (d_model + d_trainable_emb)
         nn.init.uniform_(w, -math.sqrt(lim), math.sqrt(lim))
         self.w = nn.Parameter(w)
 
@@ -300,13 +303,19 @@ class QANet(nn.Module):
         # self.char_emb = nn.Embedding.from_pretrained(torch.Tensor(char_mat), freeze=config.pretrained_char)
         # self.word_emb = nn.Embedding.from_pretrained(torch.Tensor(word_mat))
         self.emb = Embedding()
-        self.context_conv = DepthwiseSeparableConv(d_word,d_model, 5)
-        self.question_conv = DepthwiseSeparableConv(d_word,d_model, 5)
-        self.c_emb_enc = EncoderBlock(conv_num=4, ch_num=d_model, k=7, length=len_c)
-        self.q_emb_enc = EncoderBlock(conv_num=4, ch_num=d_model, k=7, length=len_q)
+        self.context_conv = DepthwiseSeparableConv(d_word + d_trainable_emb,
+                                                   d_model + d_trainable_emb,
+                                                   5)
+        self.question_conv = DepthwiseSeparableConv(d_word +d_trainable_emb,
+                                                    d_model + d_trainable_emb,
+                                                    5)
+        self.c_emb_enc = EncoderBlock(conv_num=4, ch_num=d_model +d_trainable_emb, k=7, length=len_c)
+        self.q_emb_enc = EncoderBlock(conv_num=4, ch_num=d_model +d_trainable_emb, k=7, length=len_q)
         self.cq_att = CQAttention()
-        self.cq_resizer = DepthwiseSeparableConv(d_model * 4, d_model, 5)
-        enc_blk = EncoderBlock(conv_num=2, ch_num=d_model, k=5, length=len_c)
+        self.cq_resizer = DepthwiseSeparableConv((d_model + d_trainable_emb) * 4,
+                                                 d_model + d_trainable_emb,
+                                                 5)
+        enc_blk = EncoderBlock(conv_num=2, ch_num=d_model + d_trainable_emb, k=5, length=len_c)
         self.model_enc_blks = nn.ModuleList([enc_blk] * 7)
         self.out = Pointer()
 
@@ -317,6 +326,10 @@ class QANet(nn.Module):
         qmask = (torch.zeros_like(Qwid) == Qwid).float()
         Cw = self.embedding.word_embedding(Cwid)
         Qw = self.embedding.word_embedding(Qwid)
+        Cw_trainable = self.embedding.word_embedding_trainable(Cwid)
+        Qw_trainable = self.embedding.word_embedding_trainable(Qwid)
+        Cw = torch.cat((Cw, Cw_trainable), -1)
+        Qw = torch.cat((Qw, Qw_trainable), -1)
         # Cw, Cc = self.word_emb(Cwid), self.char_emb(Ccid)
         # Qw, Qc = self.word_emb(Qwid), self.char_emb(Qcid)
         C, Q = self.emb(Cw), self.emb(Qw)

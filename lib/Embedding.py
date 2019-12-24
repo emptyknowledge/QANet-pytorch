@@ -16,6 +16,7 @@ class BertEmbedding():
   def __init__(self, model_path="./data/model/bert"):
     self.model = BertModel.from_pretrained(model_path).to(config.device)
     self.tokenizer = BertTokenizer.from_pretrained(model_path)
+    self.trainable_embedding = self.get_trainable_embedding()
 
   def encode(self, text):
     """"""
@@ -26,11 +27,30 @@ class BertEmbedding():
     encode_text = self.tokenizer.encode(text)
     return torch.Tensor(encode_text).long().view((1, -1))
 
-  def word_embedding(self, input):
+  def word_embedding(self, ids):
+    """
+    返回 BERT 等预训练模型的 pretrained_embedding
+    Args:
+      ids:
+
+    Returns:
+
+    """
     with torch.no_grad():
-      output = self.model(input)
+      output = self.model(ids)
       embedding, _ = output
     return embedding
+
+  def word_embedding_trainable(self, ids):
+    """
+    返回可训练 embedding
+    Args:
+      ids:
+
+    Returns:
+
+    """
+    return self.trainable_embedding[ids].to(config.device)
 
   def decode2text(self, idx):
     idx = idx.tolist()
@@ -48,6 +68,22 @@ class BertEmbedding():
     for val in idxs:
       result.append(self.decode2text(val))
     return result
+
+
+  def get_trainable_embedding(self):
+    """
+    获取可训练 embedding.
+    Returns:
+
+    """
+    if not config.is_continue or not os.path.exists(config.embedding_trainable_model):
+      # torch.nn.init.normal_(torch.Tensor(3,3)).requires_grad_(True)
+      embedding = torch.Tensor(self.tokenizer.vocab_size, config.embedding_trainable_dim)
+      embedding = torch.nn.init.normal_(embedding).requires_grad_(True)
+      return embedding
+    else:
+      return torch.load(config.embedding_trainable_model).requires_grad_(True).to(config.device)
+
 
   @property
   def vocab_size(self):
