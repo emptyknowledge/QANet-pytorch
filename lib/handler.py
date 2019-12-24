@@ -187,9 +187,13 @@ def save_model(model, steps=0):
   make_path_legal(model_path)
   if not config.is_only_save_params:
     torch.save(model, model_path)
+    torch.save(model.embedding.trainable_embedding,
+               config.embedding_trainable_model)
     # torch.save(data_set.trainable_embedding, config.embedding_trainable_model)
   else:
     torch.save(model.state_dict(), model_path)
+    torch.save(model.embedding.trainable_embedding,
+               config.embedding_trainable_model)
     # torch.save(data_set.trainable_embedding, config.embedding_trainable_model)
 
 @fn_timer(logger)
