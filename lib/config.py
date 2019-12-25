@@ -49,9 +49,9 @@ char_limit = 16 #Limit length for character
 word_count_limit = -1 #Min count for word
 char_count_limit = -1 #Min count for char
 
-is_continue = False
+is_continue = True
 model_dir = "./model"
-continue_checkpoint = 5050
+continue_checkpoint = 4900
 capacity = 15000 #Batch size of dataset shuffle
 num_threads = 4 #Number of threads in input pipeline
 is_bucket = False #build bucket batch iterator or not
@@ -80,7 +80,7 @@ epochs = 20 # The epoch of train.
 steps_num = 5000 # The num of train step in one epoch.
 interval_save = 50 # The interval of save model.
 min_loss = 0 # The scope of loss.可能出现 loss 非常大的情况
-max_loss = None
+max_loss = 10
 
 # Extensions (Uncomment corresponding line in download.sh to download the required data)
 glove_char_file = os.path.join(home, "data", "glove", "glove.840B.300d-char.txt")
