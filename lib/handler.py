@@ -187,13 +187,13 @@ def save_model(model, steps=0):
   make_path_legal(model_path)
   if not config.is_only_save_params:
     torch.save(model, model_path)
-    torch.save(model.embedding.trainable_embedding,
-               config.embedding_trainable_model)
+    # torch.save(model.embedding.trainable_embedding,
+    #            config.embedding_trainable_model)
     # torch.save(data_set.trainable_embedding, config.embedding_trainable_model)
   else:
     torch.save(model.state_dict(), model_path)
-    torch.save(model.embedding.trainable_embedding,
-               config.embedding_trainable_model)
+    # torch.save(model.embedding.trainable_embedding,
+    #            config.embedding_trainable_model)
     # torch.save(data_set.trainable_embedding, config.embedding_trainable_model)
 
 @fn_timer(logger)
@@ -301,3 +301,21 @@ def transfer_index(origin_content, tokenize_content, *indexes):
       else:
         result.append(-1)
   return result
+
+
+def get_trainable_embedding(vocab_size):
+  """
+  获取可训练 embedding.
+  Returns:
+
+  """
+  embedding = torch.Tensor(vocab_size, config.embedding_trainable_dim)
+  embedding = torch.nn.Parameter(torch.nn.init.normal_(embedding).to(config.device))
+  return embedding
+  # if not config.is_continue or not os.path.exists(config.embedding_trainable_model):
+  #   # torch.nn.init.normal_(torch.Tensor(3,3)).requires_grad_(True)
+  #   embedding = torch.Tensor(vocab_size, config.embedding_trainable_dim)
+  #   embedding = torch.nn.Parameter(torch.nn.init.normal_(embedding)).to(config.device).requires_grad_(True)
+  #   return embedding
+  # else:
+  #   return torch.load(config.embedding_trainable_model).to(config.device).requires_grad_(True)

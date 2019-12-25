@@ -5,6 +5,8 @@ import math
 import lib.config as config
 import torchsnooper
 
+from lib.handler import *
+
 from lib.Embedding import BertEmbedding
 
 
@@ -300,6 +302,8 @@ class QANet(nn.Module):
     def __init__(self):
         super().__init__()
         self.embedding = BertEmbedding(config.bert_path)
+        self.trainable_embedding = get_trainable_embedding(
+            self.embedding.vocab_size)
         # self.char_emb = nn.Embedding.from_pretrained(torch.Tensor(char_mat), freeze=config.pretrained_char)
         # self.word_emb = nn.Embedding.from_pretrained(torch.Tensor(word_mat))
         self.emb = Embedding()
@@ -326,8 +330,8 @@ class QANet(nn.Module):
         qmask = (torch.zeros_like(Qwid) == Qwid).float()
         Cw = self.embedding.word_embedding(Cwid)
         Qw = self.embedding.word_embedding(Qwid)
-        Cw_trainable = self.embedding.word_embedding_trainable(Cwid)
-        Qw_trainable = self.embedding.word_embedding_trainable(Qwid)
+        Cw_trainable = self.trainable_embedding.data[Cwid]
+        Qw_trainable = self.trainable_embedding.data[Qwid]
         Cw = torch.cat((Cw, Cw_trainable), -1)
         Qw = torch.cat((Qw, Qw_trainable), -1)
         # Cw, Cc = self.word_emb(Cwid), self.char_emb(Ccid)

@@ -14,6 +14,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import torch.cuda
+import traceback
 from torch.utils.data import Dataset
 from lib.QADataSet import read_data
 import argparse
@@ -159,8 +160,8 @@ def train_entry():
   train_dataset = get_dataset("train")
   dev_dataset = get_dataset("dev")
   trial_dataset = get_dataset("trial")
-  train_eval_file = read_data(config.train_eval_file)
-  dev_eval_file = read_data(config.dev_eval_file)
+  # train_eval_file = read_data(config.train_eval_file)
+  # dev_eval_file = read_data(config.dev_eval_file)
 
   lr = config.learning_rate
   base_lr = 1.0
@@ -170,23 +171,27 @@ def train_entry():
   ema = EMA(config.ema_decay)
   for name, p in model.named_parameters():
     if p.requires_grad: ema.set(name, p)
+  # ema.set("trainable_embedding", model.embedding.trainable_embedding)
+  # params = list(model.parameters())
+  # params.append(model.embedding.trainable_embedding)
   params = filter(lambda param: param.requires_grad, model.parameters())
+  # params = filter(lambda param: param.requires_grad, params)
   optimizer = optim.Adam(lr=base_lr, betas=(config.beta1, config.beta2),
                          eps=1e-7, weight_decay=3e-7, params=params)
   cr = lr / log2(warm_up)
   scheduler = optim.lr_scheduler.LambdaLR(optimizer,
                                           lr_lambda=lambda ee: cr * log2(
                                             ee + 1) if ee < warm_up else lr)
-  L = config.checkpoint
-  N = config.num_steps
+  # L = config.checkpoint
+  # N = config.num_steps
   epochs = config.epochs
   best_f1 = best_em = patience = 0
   start_index = 0 if not config.is_continue else config.continue_checkpoint
   for epoch in range(epochs):
     logger.info(f"Epoch: {epoch}")
     train(model, optimizer, scheduler, ema, train_dataset, start_index,
-          # train_dataset.data_szie, epoch)
-          1, epoch) # todo: debug 完删掉
+          train_dataset.data_szie, epoch)
+          # 1, epoch) # todo: debug 完删掉
     valid(model, dev_dataset)
     metrics = test(model, trial_dataset)
     logger.info("Learning rate: {}".format(scheduler.get_lr()))
@@ -210,8 +215,7 @@ def train_entry():
 #   model = torch.load(fn)
 #   test(model, dev_dataset, dev_eval_file)
 
-
-if __name__ == '__main__':
+def main():
   parser = argparse.ArgumentParser()
   parser.add_argument("--mode", action="store", dest="mode", default="train",
                       help="train/test/debug")
@@ -232,3 +236,9 @@ if __name__ == '__main__':
   else:
     print("Unknown mode")
     exit(0)
+
+if __name__ == '__main__':
+  try:
+    main()
+  except Exception:
+    logger.error(traceback.format_exc())
