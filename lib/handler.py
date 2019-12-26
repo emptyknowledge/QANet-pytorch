@@ -319,3 +319,34 @@ def get_trainable_embedding(vocab_size):
   #   return embedding
   # else:
   #   return torch.load(config.embedding_trainable_model).to(config.device).requires_grad_(True)
+
+
+def adapt_conv2D(input_val):
+  """
+  将输入转换为适合二维 conv （卷积）的维度.
+  词向量输入： batch_size, length, word_dim, 二维卷积需要的维度: batch_size, length, word_dim, channel,
+  将输入增加一维。
+  Args:
+    input_val:
+
+  Returns:
+
+  """
+  if len(input_val.shape) == 3:
+    return torch.unsqueeze(input_val, -1)
+
+  return input_val
+
+def adapt_line(input_val):
+  """
+  对线性模块适配输入值. Line 模块输入三维，但 conv2d 出来后是 4 维.
+  Args:
+    input_val:
+
+  Returns:
+
+  """
+  if len(input_val.shape) == 4 and input_val.shape[-1] == 1:
+    return torch.squeeze(input_val, -1)
+
+  return input_val

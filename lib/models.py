@@ -46,6 +46,7 @@ class PosEncoder(nn.Module):
 class DepthwiseSeparableConv(nn.Module):
     def __init__(self, in_ch, out_ch, k, dim=1, bias=True):
         super().__init__()
+        self.dim =dim
         if dim == 1:
             self.depthwise_conv = nn.Conv1d(in_channels=in_ch, out_channels=in_ch, kernel_size=k, groups=in_ch,
                                             padding=k // 2, bias=bias)
@@ -58,11 +59,16 @@ class DepthwiseSeparableConv(nn.Module):
             raise Exception("Wrong dimension for Depthwise Separable Convolution!")
         nn.init.kaiming_normal_(self.depthwise_conv.weight)
         nn.init.constant_(self.depthwise_conv.bias, 0.0)
-        nn.init.kaiming_normal_(self.depthwise_conv.weight)
+        nn.init.kaiming_normal_(self.pointwise_conv.weight)
         nn.init.constant_(self.pointwise_conv.bias, 0.0)
 
     def forward(self, x):
-        return self.pointwise_conv(self.depthwise_conv(x))
+        if self.dim == 2:
+            x = adapt_conv2D(x)
+        else:
+            x = adapt_line(x)
+        x = self.pointwise_conv(self.depthwise_conv(x))
+        return adapt_line(x)
 
 
 class Highway(nn.Module):
@@ -73,6 +79,7 @@ class Highway(nn.Module):
         self.gate = nn.ModuleList([nn.Linear(size, size) for _ in range(self.n)])
 
     def forward(self, x):
+        x = adapt_line(x)
         x = x.transpose(1, 2)
         for i in range(self.n):
             # 线性变换
@@ -136,6 +143,7 @@ class MultiHeadAttention(nn.Module):
         self.a = 1 / math.sqrt(d_k)
 
     def forward(self, x, mask):
+        x = adapt_line(x)
         bs, _, l_x = x.size()
         x = x.transpose(1,2)
         k = self.k_linear(x).view(bs, l_x, n_head, d_k)
@@ -162,7 +170,7 @@ class Embedding(nn.Module):
         super().__init__()
         self.conv2d = DepthwiseSeparableConv(d_char + d_trainable_emb,
                                              d_char + d_trainable_emb,
-                                             5, dim=1)
+                                             5, dim=2)
         self.high = Highway(2, d_word + d_trainable_emb)
 
     def forward(self, wd_emb):
@@ -174,8 +182,9 @@ class Embedding(nn.Module):
         # ch_emb = ch_emb.squeeze()
         wd_emb = F.dropout(wd_emb, p=dropout, training=self.training)
         wd_emb = wd_emb.transpose(1, 2)
-        wd_emb = self.conv2d(wd_emb)
+        wd_emb = self.conv2d(adapt_conv2D(wd_emb))
         emb = wd_emb
+        emb = torch.squeeze(emb, -1)
         emb = self.high(emb)
         return emb
 
@@ -183,7 +192,7 @@ class Embedding(nn.Module):
 class EncoderBlock(nn.Module):
     def __init__(self, conv_num: int, ch_num: int, k: int, length: int):
         super().__init__()
-        self.convs = nn.ModuleList([DepthwiseSeparableConv(ch_num, ch_num, k) for _ in range(conv_num)])
+        self.convs = nn.ModuleList([DepthwiseSeparableConv(ch_num, ch_num, k, dim=2) for _ in range(conv_num)])
         self.self_att = MultiHeadAttention()
         self.fc = nn.Linear(ch_num, ch_num, bias=True)
         self.pos = PosEncoder(length)
@@ -194,7 +203,7 @@ class EncoderBlock(nn.Module):
         self.L = conv_num
 
     def forward(self, x, mask):
-        out = self.pos(x)
+        out = self.pos(adapt_line(x))
         res = out
         out = self.normb(out)
         for i, conv in enumerate(self.convs):
@@ -309,16 +318,19 @@ class QANet(nn.Module):
         self.emb = Embedding()
         self.context_conv = DepthwiseSeparableConv(d_word + d_trainable_emb,
                                                    d_model,
-                                                   5)
+                                                   5,
+                                                   dim=2)
         self.question_conv = DepthwiseSeparableConv(d_word +d_trainable_emb,
                                                     d_model,
-                                                    5)
+                                                    5,
+                                                    dim=2)
         self.c_emb_enc = EncoderBlock(conv_num=4, ch_num=d_model, k=7, length=len_c)
         self.q_emb_enc = EncoderBlock(conv_num=4, ch_num=d_model, k=7, length=len_q)
         self.cq_att = CQAttention()
         self.cq_resizer = DepthwiseSeparableConv(d_model * 4,
                                                  d_model,
-                                                 5)
+                                                 5,
+                                                 dim=2)
         enc_blk = EncoderBlock(conv_num=2, ch_num=d_model, k=5, length=len_c)
         self.model_enc_blks = nn.ModuleList([enc_blk] * 7)
         self.out = Pointer()
@@ -334,11 +346,13 @@ class QANet(nn.Module):
         Qw_trainable = self.trainable_embedding.data[Qwid]
         Cw = torch.cat((Cw, Cw_trainable), -1)
         Qw = torch.cat((Qw, Qw_trainable), -1)
+        # Cw = torch.unsqueeze(Cw, -1)
+        # Qw = torch.unsqueeze(Qw, -1)
         # Cw, Cc = self.word_emb(Cwid), self.char_emb(Ccid)
         # Qw, Qc = self.word_emb(Qwid), self.char_emb(Qcid)
         C, Q = self.emb(Cw), self.emb(Qw)
-        C = self.context_conv(C)  
-        Q = self.question_conv(Q)  
+        C = self.context_conv(C)
+        Q = self.question_conv(Q)
         Ce = self.c_emb_enc(C, cmask)
         Qe = self.q_emb_enc(Q, qmask)
 
