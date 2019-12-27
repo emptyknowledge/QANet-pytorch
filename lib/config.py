@@ -51,14 +51,14 @@ char_count_limit = -1 #Min count for char
 
 is_continue = False
 model_dir = "./model"
-continue_checkpoint = 10000
+continue_checkpoint = 7500
 capacity = 15000 #Batch size of dataset shuffle
 num_threads = 4 #Number of threads in input pipeline
 is_bucket = False #build bucket batch iterator or not
 bucket_range = [40, 401, 40] #the range of bucket
 
-batch_size = 2 #Batch size
-num_steps = 1000 #Number of steps
+batch_size = 10 #Batch size
+num_steps = 10000 #Number of steps
 checkpoint = 50 # 200 #checkpoint to save and evaluate the model
 period = 100 #period to save batch loss
 val_num_batches = 10 #Number of batches to evaluate the model

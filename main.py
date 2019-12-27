@@ -190,7 +190,7 @@ def train_entry():
   for epoch in range(epochs):
     logger.info(f"Epoch: {epoch}")
     train(model, optimizer, scheduler, ema, train_dataset, start_index,
-          train_dataset.data_szie, epoch)
+          config.num_steps, epoch)
           # 1, epoch) # todo: debug 完删掉
     valid(model, dev_dataset)
     metrics = test(model, trial_dataset)
