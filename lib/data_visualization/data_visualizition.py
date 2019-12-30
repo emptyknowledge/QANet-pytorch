@@ -68,4 +68,4 @@ def view_limited_loss(min_loss=None, max_loss=None):
 
 
 if __name__ == "__main__":
-  view_limited_loss(max_loss=100000)
+  view_limited_loss(max_loss=10)

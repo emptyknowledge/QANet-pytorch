@@ -168,6 +168,7 @@ def train_entry():
   warm_up = config.lr_warm_up_num
 
   model = get_model().to(device)
+
   ema = EMA(config.ema_decay)
   for name, p in model.named_parameters():
     if p.requires_grad: ema.set(name, p)

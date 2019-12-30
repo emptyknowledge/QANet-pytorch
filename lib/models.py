@@ -151,6 +151,7 @@ class MultiHeadAttention(nn.Module):
     self.a = 1 / math.sqrt(d_k)
 
   def forward(self, x, mask):
+    # adapt_line(x): batch_size, length, dim
     x = adapt_line(x)
     bs, _, l_x = x.size()
     x = x.transpose(1, 2)
@@ -265,8 +266,8 @@ class CQAttention(nn.Module):
     ss = []
     C = C.transpose(1, 2)  # shape: batch_size, context_length, dim
     Q = Q.transpose(1, 2)  # shape: batch_size, question_length, dim
-    cmask = cmask.unsqueeze(2)  # shape: batch_size, length, new_dim
-    qmask = qmask.unsqueeze(1)  # shape: batch_size, new_dim, length
+    cmask = cmask.unsqueeze(2)  # 升维, shape: batch_size, length, new_dim
+    qmask = qmask.unsqueeze(1)  # 升维， shape: batch_size, new_dim, length
 
     # batch_size, conetxt_length, question_length, dim
     shape = (C.size(0), C.size(1), Q.size(1), C.size(2))
@@ -279,17 +280,26 @@ class CQAttention(nn.Module):
     # 变为 (context_length ,question_length, dim), 表示每个 question 被复制为了
     #  context_length 份
     Qt = Q.unsqueeze(1).expand(shape)
+    # CQ 计算点积
     CQ = torch.mul(Ct, Qt)
     # S.shape: batch_size, conetxt_length, question_length, dim * 3
     S = torch.cat([Ct, Qt, CQ], dim=3)
     # s.shape: batch_size, conetxt_length, question_length, 1
     S = torch.matmul(S, self.w)
+    # S1 在 question_lenth 这维 soft max， Context 使用, shape: batch_size, conetxt_length, question_length, 1
     S1 = F.softmax(mask_logits(S, qmask), dim=2)
+    # S2 在 context_lenth 这维 soft max， Question 使用, shape: batch_size, conetxt_length, question_length, 1
     S2 = F.softmax(mask_logits(S, cmask), dim=1)
+    # A context attention. shape: batch_size, context_length, dim
     A = torch.bmm(S1, Q)
+    # B question attention。
+    # torch.bmm(S1, S2.transpose(1, 2)) shape: batch_size, context_length, context_length
+    # B shape: batch_size, context_length, dim
     B = torch.bmm(torch.bmm(S1, S2.transpose(1, 2)), C)
+    # out shape : batch_size, context_length, dim * 4
     out = torch.cat([C, A, torch.mul(C, A), torch.mul(C, B)], dim=2)
     out = F.dropout(out, p=dropout, training=self.training)
+    # out shape: batch_size, dim * 4, context_length
     return out.transpose(1, 2)
 
 
@@ -326,7 +336,8 @@ class ContextConv(nn.Module):
     self.convs = nn.ModuleList()
     channel = input_channel
     while channel > 2 * out_channel:
-      # TODO: 查查原因，为什么这里需要 to(device) ，否则就会异常
+      # 查查原因，为什么这里需要 to(device) ，否则就会异常？
+      # 使用 nn.ModuleList 就不需要单独加 to(device)
       self.convs.append(DepthwiseSeparableConv(channel,
                                                channel // 2,
                                                5,
@@ -351,17 +362,7 @@ class QANet(nn.Module):
     self.embedding = BertEmbedding(config.bert_path)
     self.trainable_embedding = get_trainable_embedding(
       self.embedding.vocab_size)
-    # self.char_emb = nn.Embedding.from_pretrained(torch.Tensor(char_mat), freeze=config.pretrained_char)
-    # self.word_emb = nn.Embedding.from_pretrained(torch.Tensor(word_mat))
     self.emb = Embedding()
-    # self.context_conv = DepthwiseSeparableConv(d_word + d_trainable_emb,
-    #                                            d_model,
-    #                                            5,
-    #                                            dim=2)
-    # self.question_conv = DepthwiseSeparableConv(d_word +d_trainable_emb,
-    #                                             d_model,
-    #                                             5,
-    #                                             dim=2)
     self.context_conv = ContextConv(d_word + d_trainable_emb, d_model)
     self.question_conv = ContextConv(d_word + d_trainable_emb, d_model)
     self.c_emb_enc = EncoderBlock(conv_num=4, ch_num=d_model, k=7, length=len_c)
@@ -386,18 +387,18 @@ class QANet(nn.Module):
     Qw_trainable = self.trainable_embedding.data[Qwid]
     Cw = torch.cat((Cw, Cw_trainable), -1)
     Qw = torch.cat((Qw, Qw_trainable), -1)
-    # Cw = torch.unsqueeze(Cw, -1)
-    # Qw = torch.unsqueeze(Qw, -1)
-    # Cw, Cc = self.word_emb(Cwid), self.char_emb(Ccid)
-    # Qw, Qc = self.word_emb(Qwid), self.char_emb(Qcid)
+    # C,Q emb 后 shape: batch_size, length, embedding_dim
     C, Q = self.emb(Cw), self.emb(Qw)
+    # C,Q  context_conv 后 shape: batch_size, length, d_model
     C = self.context_conv(C)
     Q = self.question_conv(Q)
+    # Ce, Qe shape:  batch_size, length, d_model
     Ce = self.c_emb_enc(C, cmask)
     Qe = self.q_emb_enc(Q, qmask)
 
-    # Attention
+    # Attention,  X shape: batch_size, dim * 4, context_length
     X = self.cq_att(Ce, Qe, cmask, qmask)
+    # M1 shape: batch_size, dim, context_length
     M1 = self.cq_resizer(X)
     for enc in self.model_enc_blks: M1 = enc(M1, cmask)
     M2 = M1

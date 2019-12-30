@@ -7,7 +7,7 @@ dev_file = os.path.join(home, "data", "squad", "dev-v1.1.json")
 test_file = os.path.join(home, "data", "squad", "dev-v1.1.json")
 glove_word_file = os.path.join(home, "data", "glove", "glove.840B.300d.txt")
 
-device = "cuda"
+device = "cpu" # cpu、 cuda
 
 bert_path = "./data/model/RoBERTa-wwm-ext-large"
 
@@ -49,21 +49,21 @@ char_limit = 16 #Limit length for character
 word_count_limit = -1 #Min count for word
 char_count_limit = -1 #Min count for char
 
-is_continue = False
+is_continue = True
 model_dir = "./model"
-continue_checkpoint = 7500
+continue_checkpoint = 1350
 capacity = 15000 #Batch size of dataset shuffle
 num_threads = 4 #Number of threads in input pipeline
 is_bucket = False #build bucket batch iterator or not
 bucket_range = [40, 401, 40] #the range of bucket
 
-batch_size = 10 #Batch size
+batch_size = 2 #Batch size
 num_steps = 10000 #Number of steps
 checkpoint = 50 # 200 #checkpoint to save and evaluate the model
 period = 100 #period to save batch loss
-val_num_batches = 10 #Number of batches to evaluate the model
+val_num_batches = 2 #Number of batches to evaluate the model
 val_num_steps = 100
-test_num_batches = 10 #Number of batches to evaluate the model
+test_num_batches = 2 #Number of batches to evaluate the model
 test_num_steps = 100
 dropout = 0.1 #Dropout prob across the layers
 dropout_char = 0.05 #Dropout prob across the layers
@@ -80,7 +80,7 @@ epochs = 20 # The epoch of train.
 steps_num = 5000 # The num of train step in one epoch.
 interval_save = 50 # The interval of save model.
 min_loss = 0 # The scope of loss.可能出现 loss 非常大的情况
-max_loss = None
+max_loss = 20
 
 # Extensions (Uncomment corresponding line in download.sh to download the required data)
 glove_char_file = os.path.join(home, "data", "glove", "glove.840B.300d-char.txt")
