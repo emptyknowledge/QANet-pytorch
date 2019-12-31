@@ -331,7 +331,7 @@ class Pointer(nn.Module):
 
 
 class ContextConv(nn.Module):
-  def __init__(self, input_channel, out_channel):
+  def __init__(self, input_channel, out_channel, kernel_szie=5):
     super().__init__()
     self.convs = nn.ModuleList()
     channel = input_channel
@@ -340,13 +340,13 @@ class ContextConv(nn.Module):
       # 使用 nn.ModuleList 就不需要单独加 to(device)
       self.convs.append(DepthwiseSeparableConv(channel,
                                                channel // 2,
-                                               5,
+                                               kernel_szie,
                                                dim=2))
       channel = channel // 2
 
     self.convs.append(DepthwiseSeparableConv(channel,
                                              out_channel,
-                                             5,
+                                             kernel_szie,
                                              dim=2))
 
   def forward(self, x):
@@ -363,8 +363,10 @@ class QANet(nn.Module):
     self.trainable_embedding = get_trainable_embedding(
       self.embedding.vocab_size)
     self.emb = Embedding()
-    self.context_conv = ContextConv(d_word + d_trainable_emb, d_model)
-    self.question_conv = ContextConv(d_word + d_trainable_emb, d_model)
+    self.context_conv = ContextConv(d_word + d_trainable_emb, d_model,
+                                    config.context_kernel_size)
+    self.question_conv = ContextConv(d_word + d_trainable_emb, d_model,
+                                     config.question_kernel_size)
     self.c_emb_enc = EncoderBlock(conv_num=4, ch_num=d_model, k=7, length=len_c)
     self.q_emb_enc = EncoderBlock(conv_num=4, ch_num=d_model, k=7, length=len_q)
     self.cq_att = CQAttention()

@@ -147,6 +147,45 @@ def test(model, dataset):
                                                      metrics["exact_match"]))
   return metrics
 
+@fn_timer(logger)
+def classify(model, dataset):
+  # model.eval()
+  # losses = []
+  # valid_result = []
+  less_loss_data = []
+  high_loss_data = []
+  print("start classify:")
+  with torch.no_grad():
+    for i in tqdm(range(0, dataset.data_szie, dataset.batch_size), total=dataset.data_szie):
+      Cwid, Qwid, answer, ids = dataset[i]
+      Cwid, Qwid = Cwid.to(device), Qwid.to(device)
+      y1, y2 = answer[:, 0].view(-1).to(device), answer[:, 1].view(-1).to(
+        device)
+      p1, p2 = model(Cwid, Qwid)
+      y1, y2 = y1.to(device), y2.to(device)
+      loss1 = F.nll_loss(torch.log(p1), y1, reduction='none')
+      loss2 = F.nll_loss(torch.log(p2), y2, reduction='none')
+      loss = (loss1 + loss2) / 2
+      origin_data = dataset.get_origin_data(ids, "whole")
+      for index, l in enumerate(loss):
+        if l < 10e10:
+          less_loss_data.append(origin_data[index])
+        else:
+          high_loss_data.append(origin_data[index])
+
+
+      
+      # losses.append(loss.item())
+  # loss, metrics = test_model(dataset, losses, model, valid_result)
+  # record_info(losses,f1=[metrics["f1"]], em=[metrics["exact_match"]],
+  #             valid_result=valid_result, r_type="test")
+  # print("TEST loss {:8f} F1 {:8f} EM {:8f}\n".format(loss, metrics["f1"],
+  #                                                    metrics["exact_match"]))
+  writejson(less_loss_data, config.less_loss_path)
+  writejson(high_loss_data, config.high_loss_path)
+
+  # return
+
 
 
 
@@ -216,15 +255,24 @@ def train_entry():
 #   model = torch.load(fn)
 #   test(model, dev_dataset, dev_eval_file)
 
+def classify_data():
+  from lib.models import QANet
+
+  logger.info("Building model...")
+  train_dataset = get_dataset("train")
+  model = get_model().to(device)
+  classify(model, train_dataset)
+
 def main():
   parser = argparse.ArgumentParser()
   parser.add_argument("--mode", action="store", dest="mode", default="train",
                       help="train/test/debug")
   pargs = parser.parse_args()
+  mode = config.mode # pargs.mode
   logger.info("Current device is {}".format(device))
-  if pargs.mode == "train":
+  if mode == "train":
     train_entry()
-  elif pargs.mode == "debug":
+  elif mode == "debug":
     config.batch_size = 2
     config.num_steps = 32
     config.test_num_batches = 2
@@ -232,8 +280,10 @@ def main():
     config.checkpoint = 2
     config.period = 1
     train_entry()
-  elif pargs.mode == "test":
+  elif mode == "test":
     test_entry()
+  elif mode == "classify":
+    classify_data()
   else:
     print("Unknown mode")
     exit(0)

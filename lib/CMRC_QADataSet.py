@@ -98,11 +98,40 @@ class CMRC_QADataSet(Dataset):
     
   def get_origin_data(self, ids, key="context"):
     """"""
-    # result = []
-    data = read_data(self.data_path)
-    return data[ids].get(key)
-    # for i in ids:
-    #   result.append(data[i].get(key))
-    # return result
+    if isinstance(ids, torch.Tensor):
+      ids = ids.tolist()
 
+    data = read_data(self.data_path)
+    if isinstance(ids, str):
+      if key == "whole":
+        return data[ids]
+      else:
+        return data[ids].get(key)
+
+    if isinstance(ids, list):
+      result = []
+      for id in ids:
+        if key == "whole":
+          result.append(data[id])
+        else:
+          result.append(data[id].get(key))
+
+      return result
+
+
+    if ids.shape[0] > 1:
+      result = []
+      for id in ids:
+        if key == "whole":
+          result.append(data[id])
+        else:
+          result.append(data[id].get(key))
+
+      return result
+
+    if ids.shape[0] == 1:
+      if key == "whole":
+        return data[ids]
+      else:
+        return data[ids].get(key)
 

@@ -7,9 +7,11 @@ dev_file = os.path.join(home, "data", "squad", "dev-v1.1.json")
 test_file = os.path.join(home, "data", "squad", "dev-v1.1.json")
 glove_word_file = os.path.join(home, "data", "glove", "glove.840B.300d.txt")
 
-device = "cpu" # cpu、 cuda
+device = "cuda" # cpu、 cuda
 
 bert_path = "./data/model/RoBERTa-wwm-ext-large"
+
+mode = "classify" # train, classify
 
 target_dir = "data"
 event_dir = "log"
@@ -39,7 +41,7 @@ glove_word_size = int(2.2e6) #Corpus size for Glove
 glove_dim = 300 #Embedding dimension for Glove
 char_dim = 64 #Embedding dimension for char
 bert_dim = 1024 #Embedding dimension for char
-embedding_trainable_dim = 512 # 可训练词向量维度
+embedding_trainable_dim = 300 # 可训练词向量维度
 embedding_trainable_model = "./model/embedding_trainable_model.bin" # 可训练词向量维度
 
 para_limit = 512 #Limit length for paragraph
@@ -48,22 +50,24 @@ ans_limit = 30 #Limit length for answers
 char_limit = 16 #Limit length for character
 word_count_limit = -1 #Min count for word
 char_count_limit = -1 #Min count for char
+context_kernel_size = 7
+question_kernel_size = 5
 
 is_continue = True
 model_dir = "./model"
-continue_checkpoint = 1350
+continue_checkpoint = 1950
 capacity = 15000 #Batch size of dataset shuffle
 num_threads = 4 #Number of threads in input pipeline
 is_bucket = False #build bucket batch iterator or not
 bucket_range = [40, 401, 40] #the range of bucket
 
-batch_size = 2 #Batch size
+batch_size = 1 #Batch size
 num_steps = 10000 #Number of steps
 checkpoint = 50 # 200 #checkpoint to save and evaluate the model
 period = 100 #period to save batch loss
-val_num_batches = 2 #Number of batches to evaluate the model
+val_num_batches = 1 #Number of batches to evaluate the model
 val_num_steps = 100
-test_num_batches = 2 #Number of batches to evaluate the model
+test_num_batches = 1 #Number of batches to evaluate the model
 test_num_steps = 100
 dropout = 0.1 #Dropout prob across the layers
 dropout_char = 0.05 #Dropout prob across the layers
@@ -80,7 +84,7 @@ epochs = 20 # The epoch of train.
 steps_num = 5000 # The num of train step in one epoch.
 interval_save = 50 # The interval of save model.
 min_loss = 0 # The scope of loss.可能出现 loss 非常大的情况
-max_loss = 20
+max_loss = None
 
 # Extensions (Uncomment corresponding line in download.sh to download the required data)
 glove_char_file = os.path.join(home, "data", "glove", "glove.840B.300d-char.txt")
@@ -94,4 +98,6 @@ is_only_save_params = True
 log_path = "./log/log.txt"
 losses_path = "./log/losses_log.txt"
 valid_result_dir = "./log/valid_result"
+less_loss_path = "./data/less_loss.json"
+high_loss_path = "./data/high_loss.json"
 logger = get_logger(log_path)
