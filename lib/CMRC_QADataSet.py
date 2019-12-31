@@ -55,6 +55,10 @@ class CMRC_QADataSet(Dataset):
       self.idx = self.idx * (self.batch_size//self.data_szie + 1)
     random.shuffle(self.idx)
 
+  def shuffle(self):
+    """打乱数据顺序"""
+    random.shuffle(self.idx)
+
   def check_data(self, item):
     """"""
     answer = item.get("answer_index")

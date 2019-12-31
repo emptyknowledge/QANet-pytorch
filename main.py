@@ -155,8 +155,10 @@ def classify(model, dataset):
   less_loss_data = []
   high_loss_data = []
   print("start classify:")
+  model.eval()
   with torch.no_grad():
     for i in tqdm(range(0, dataset.data_szie, dataset.batch_size), total=dataset.data_szie):
+      logger.info(f"Classify index : {i}")
       Cwid, Qwid, answer, ids = dataset[i]
       Cwid, Qwid = Cwid.to(device), Qwid.to(device)
       y1, y2 = answer[:, 0].view(-1).to(device), answer[:, 1].view(-1).to(
@@ -245,6 +247,7 @@ def train_entry():
       best_f1 = max(best_f1, dev_f1)
       best_em = max(best_em, dev_em)
     start_index = 0
+    train_dataset.shuffle()
 
 
 # def test_entry():
