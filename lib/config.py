@@ -103,3 +103,6 @@ valid_result_dir = "./log/valid_result"
 less_loss_path = "./data/less_loss.json"
 high_loss_path = "./data/high_loss.json"
 logger = get_logger(log_path)
+
+# data visualization
+font_file = "./data/font/fangsong.ttf"
