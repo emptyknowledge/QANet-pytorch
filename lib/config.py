@@ -1,5 +1,6 @@
 
 import os
+import sys
 from my_py_toolkit.log.logger import get_logger
 home = os.path.expanduser(".")
 train_file = os.path.join(home, "data", "squad", "train-v1.1.json")
@@ -11,7 +12,7 @@ device = "cuda" # cpu、 cuda
 
 bert_path = "./data/model/RoBERTa-wwm-ext-large"
 
-mode = "classify" # train, classify
+mode = "train" # train, classify
 
 target_dir = "data"
 event_dir = "log"
@@ -41,7 +42,7 @@ glove_word_size = int(2.2e6) #Corpus size for Glove
 glove_dim = 300 #Embedding dimension for Glove
 char_dim = 64 #Embedding dimension for char
 bert_dim = 1024 #Embedding dimension for char
-embedding_trainable_dim = 300 # 可训练词向量维度
+embedding_trainable_dim = 512 # 可训练词向量维度
 embedding_trainable_model = "./model/embedding_trainable_model.bin" # 可训练词向量维度
 
 para_limit = 512 #Limit length for paragraph
@@ -55,7 +56,7 @@ question_kernel_size = 5
 
 is_continue = True
 model_dir = "./model"
-continue_checkpoint = 2300
+continue_checkpoint = 11050 # 500 的时候 loss 到达最低处 2.0+
 capacity = 15000 #Batch size of dataset shuffle
 num_threads = 4 #Number of threads in input pipeline
 is_bucket = False #build bucket batch iterator or not
@@ -66,7 +67,7 @@ num_steps = 10000 #Number of steps
 checkpoint = 50 # 200 #checkpoint to save and evaluate the model
 period = 100 #period to save batch loss
 val_num_batches = 10 #Number of batches to evaluate the model
-val_num_steps = 100
+val_num_steps = sys.maxsize # 100
 test_num_batches = 10 #Number of batches to evaluate the model
 test_num_steps = 100
 dropout = 0.1 #Dropout prob across the layers

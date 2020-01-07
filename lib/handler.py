@@ -217,7 +217,7 @@ def get_dataset(data_type="train"):
                         config.batch_size)
     return dataset
 
-def record_info(losses, f1=[], em=[], valid_result={}, iter_num=0,
+def record_info(losses, f1=[], em=[], valid_result={}, epoch=0,
                 r_type="train"):
   """
   记录训练中的 loss, f1, em 值.
@@ -242,7 +242,7 @@ def record_info(losses, f1=[], em=[], valid_result={}, iter_num=0,
     write2file(",".join(em), f"{dir_name}em.txt")
 
   if valid_result:
-    writejson(valid_result, f"{dir_name}valid_result_{iter_num}.json")
+    writejson(valid_result, f"{dir_name}valid_result_{epoch}.json")
 
 
 def corresponds_index(origin, token):

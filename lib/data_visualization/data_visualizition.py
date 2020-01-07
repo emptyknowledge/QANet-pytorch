@@ -67,5 +67,33 @@ def view_limited_loss(min_loss=None, max_loss=None):
   view_point_data(losses, is_save=True, save_path="./test.png", is_show=True)
 
 
+def draw_bar(data, labels, x_label, y_label, title, width=1):
+  """
+
+  Args:
+    data(numpy.object): 二维数据
+    labels(dict): {x_label: [], y_label: []}
+    x_label(str):  x 轴标题.
+    y_label(str):  y 轴标题.
+    title(str): 表标题.
+
+  Returns:
+
+  """
+  x_tick_labels = labels.get("x_tick_labels", [])
+  y_tick_labels = labels.get("y_tick_labels", [])
+
+  rects = []
+  
+
+  fig, ax = plt.subplots()
+
+  ax.set_ylabel(y_label)
+  ax.set_xlabel(x_label)
+  ax.set_title(title)
+  ax.set_xticks(len(x_tick_labels))
+  ax.set_xticklabels(x_tick_labels)
+  ax.legend()
+
 if __name__ == "__main__":
-  view_limited_loss(max_loss=10)
+  view_limited_loss(max_loss=100)

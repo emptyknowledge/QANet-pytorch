@@ -37,6 +37,10 @@ device = config.device
 
 
 class EMA(object):
+  """
+  EMA（Exponential Moving Average）是指数移动平均值, 在参数更新时考虑了前 n - 1 次的参数值，
+  不直接使用梯度更新的参数.
+  """
   def __init__(self, decay):
     self.decay = decay
     self.shadows = {}
@@ -87,13 +91,13 @@ def train(model, optimizer, scheduler, ema, dataset, start_step, steps_num, epoc
 
     if step % config.interval_save == 0:
       save_model(model, step)
-      record_info(origin_losses, r_type="train", iter_num=step)
+      record_info(origin_losses, r_type="train", epoch=step)
       origin_losses = []
   loss_avg = np.mean(clamped_losses)
   logger.info("Epoch {:8d} loss {:8f}\n".format(epoch, loss_avg))
 
 @fn_timer(logger)
-def valid(model, dataset):
+def valid(model, dataset, epoch=0):
   model.eval()
   valid_result = []
   losses = []
@@ -101,14 +105,16 @@ def valid(model, dataset):
   loss, metrics = test_model(dataset, losses, model, valid_result)
   record_info(losses, f1=[metrics["f1"]], em=[metrics["exact_match"]],
               valid_result=valid_result,
+              epoch=epoch,
               r_type="valid")
   logger.info("VALID loss {:8f} F1 {:8f} EM {:8f}\n".format(loss, metrics["f1"],
                                                             metrics["exact_match"]))
 
 
 def test_model(dataset, losses, model, valid_result):
+  steps = min(config.val_num_steps, dataset.data_szie)
   with torch.no_grad():
-    for i in tqdm(range(0, config.val_num_steps), total=config.val_num_steps):
+    for i in tqdm(range(0, steps), total=steps):
       Cwid, Qwid, answer, ids = dataset[i]
       Cwid, Qwid = Cwid.to(device), Qwid.to(device)
       y1, y2 = answer[:, 0].view(-1).to(device), answer[:, 1].view(-1).to(
@@ -135,14 +141,15 @@ def test_model(dataset, losses, model, valid_result):
 
 
 @fn_timer(logger)
-def test(model, dataset):
+def test(model, dataset, epoch=0):
   model.eval()
   losses = []
   valid_result = []
   print("start test:")
   loss, metrics = test_model(dataset, losses, model, valid_result)
   record_info(losses,f1=[metrics["f1"]], em=[metrics["exact_match"]],
-              valid_result=valid_result, r_type="test")
+              valid_result=valid_result, epoch=epoch,
+              r_type="test")
   print("TEST loss {:8f} F1 {:8f} EM {:8f}\n".format(loss, metrics["f1"],
                                                      metrics["exact_match"]))
   return metrics
@@ -196,13 +203,9 @@ def train_entry():
 
   logger.info("Building model...")
 
-  # train_dataset = QADataSet(batch_size=config.batch_size)
-  # dev_dataset = QADataSet(batch_size=config.batch_size)
   train_dataset = get_dataset("train")
   dev_dataset = get_dataset("dev")
   trial_dataset = get_dataset("trial")
-  # train_eval_file = read_data(config.train_eval_file)
-  # dev_eval_file = read_data(config.dev_eval_file)
 
   lr = config.learning_rate
   base_lr = 1.0
@@ -213,19 +216,13 @@ def train_entry():
   ema = EMA(config.ema_decay)
   for name, p in model.named_parameters():
     if p.requires_grad: ema.set(name, p)
-  # ema.set("trainable_embedding", model.embedding.trainable_embedding)
-  # params = list(model.parameters())
-  # params.append(model.embedding.trainable_embedding)
   params = filter(lambda param: param.requires_grad, model.parameters())
-  # params = filter(lambda param: param.requires_grad, params)
   optimizer = optim.Adam(lr=base_lr, betas=(config.beta1, config.beta2),
                          eps=1e-7, weight_decay=3e-7, params=params)
   cr = lr / log2(warm_up)
   scheduler = optim.lr_scheduler.LambdaLR(optimizer,
                                           lr_lambda=lambda ee: cr * log2(
                                             ee + 1) if ee < warm_up else lr)
-  # L = config.checkpoint
-  # N = config.num_steps
   epochs = config.epochs
   best_f1 = best_em = patience = 0
   start_index = 0 if not config.is_continue else config.continue_checkpoint
@@ -234,8 +231,8 @@ def train_entry():
     train(model, optimizer, scheduler, ema, train_dataset, start_index,
           config.num_steps, epoch)
           # 1, epoch) # todo: debug 完删掉
-    valid(model, dev_dataset)
-    metrics = test(model, trial_dataset)
+    valid(model, dev_dataset, epoch)
+    metrics = test(model, trial_dataset, epoch)
     logger.info("Learning rate: {}".format(scheduler.get_lr()))
     dev_f1 = metrics["f1"]
     dev_em = metrics["exact_match"]
