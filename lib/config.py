@@ -56,7 +56,7 @@ question_kernel_size = 5
 
 is_continue = True
 model_dir = "./model"
-continue_checkpoint = 11050 # 500 的时候 loss 到达最低处 2.0+
+continue_checkpoint = 11100 # 500 的时候 loss 到达最低处 2.0+
 capacity = 15000 #Batch size of dataset shuffle
 num_threads = 4 #Number of threads in input pipeline
 is_bucket = False #build bucket batch iterator or not
@@ -82,6 +82,7 @@ early_stop = 10 #Checkpoints for early stop
 d_model = 96 #Dimension of connectors of each layer
 num_heads = 8 #Number of heads in multi-head attention
 epochs = 20 # The epoch of train.
+start_epoch = 0
 steps_num = 5000 # The num of train step in one epoch.
 interval_save = 50 # The interval of save model.
 min_loss = 0 # The scope of loss.可能出现 loss 非常大的情况

@@ -69,7 +69,7 @@ def train(model, optimizer, scheduler, ema, dataset, start_step, steps_num, epoc
   clamped_losses = []
   origin_losses = []
   logger.info("start_step train:")
-  for step in tqdm(range(start_step, steps_num + start_step), total=steps_num):
+  for step in tqdm(range(start_step, steps_num), total=steps_num - start_step):
     optimizer.zero_grad()
     Cwid, Qwid, answer, ids = dataset[step]
     Cwid, Qwid = Cwid.to(device), Qwid.to(device)
@@ -226,7 +226,7 @@ def train_entry():
   epochs = config.epochs
   best_f1 = best_em = patience = 0
   start_index = 0 if not config.is_continue else config.continue_checkpoint
-  for epoch in range(epochs):
+  for epoch in range(config.start_epoch, epochs):
     logger.info(f"Epoch: {epoch}")
     train(model, optimizer, scheduler, ema, train_dataset, start_index,
           config.num_steps, epoch)

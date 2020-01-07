@@ -71,7 +71,7 @@ def draw_bar(data, labels, x_label, y_label, title, width=1):
   """
 
   Args:
-    data(numpy.object): 二维数据
+    data(numpy.object): 二维数据, The size:（context_length, question_length）
     labels(dict): {x_label: [], y_label: []}
     x_label(str):  x 轴标题.
     y_label(str):  y 轴标题.
@@ -83,10 +83,17 @@ def draw_bar(data, labels, x_label, y_label, title, width=1):
   x_tick_labels = labels.get("x_tick_labels", [])
   y_tick_labels = labels.get("y_tick_labels", [])
 
+  context_length = len(data)
+
   rects = []
   
 
   fig, ax = plt.subplots()
+
+  for index, c_q_attention in enumerate(data):
+    rect = ax.bar(width / len(context_length), c_q_attention, width,
+                  label=y_tick_labels[index])
+    rects.append(rect)
 
   ax.set_ylabel(y_label)
   ax.set_xlabel(x_label)
