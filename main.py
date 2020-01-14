@@ -69,7 +69,7 @@ def train(model, optimizer, scheduler, ema, dataset, start_step, steps_num, epoc
   clamped_losses = []
   origin_losses = []
   logger.info("start_step train:")
-  for step in tqdm(range(start_step, steps_num), total=steps_num - start_step):
+  for step in tqdm(range(start_step, steps_num, dataset.batch_size), total=steps_num - start_step):
     optimizer.zero_grad()
     Cwid, Qwid, answer, ids = dataset[step]
     Cwid, Qwid = Cwid.to(device), Qwid.to(device)
@@ -114,7 +114,7 @@ def valid(model, dataset, epoch=0):
 def test_model(dataset, losses, model, valid_result, dataset_type="valid"):
   steps = min(get_steps(dataset_type, config.mode), dataset.data_szie)
   with torch.no_grad():
-    for i in tqdm(range(0, steps), total=steps):
+    for i in tqdm(range(0, steps, dataset.batch_size), total=steps):
       Cwid, Qwid, answer, ids = dataset[i]
       Cwid, Qwid = Cwid.to(device), Qwid.to(device)
       y1, y2 = answer[:, 0].view(-1).to(device), answer[:, 1].view(-1).to(

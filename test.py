@@ -73,10 +73,12 @@ def test_bert():
     print(index, val, index_in_token, val_in_token)
   # print(transfer_index(text, token, 2, 3, 9, 10))
 
-def test():
-  tensor1 = torch.randn(3)
-  tensor2 = torch.randn(3)
-  torch.matmul(tensor1, tensor2).size()
+def test_a():
+  # tensor1 = torch.randn(3)
+  # tensor2 = torch.randn(3)
+  # torch.matmul(tensor1, tensor2).size()
+  for i in range(0, 10,2):
+    print(i)
 
 if __name__ == "__main__":
-  test()
+  test_a()
