@@ -102,7 +102,7 @@ def valid(model, dataset, epoch=0):
   valid_result = []
   losses = []
   logger.info("start valid:")
-  loss, metrics = test_model(dataset, losses, model, valid_result)
+  loss, metrics = test_model(dataset, losses, model, valid_result, dataset_type="valid")
   record_info(losses, f1=[metrics["f1"]], em=[metrics["exact_match"]],
               valid_result=valid_result,
               epoch=epoch,
@@ -111,8 +111,8 @@ def valid(model, dataset, epoch=0):
                                                             metrics["exact_match"]))
 
 
-def test_model(dataset, losses, model, valid_result):
-  steps = min(config.val_num_steps, dataset.data_szie)
+def test_model(dataset, losses, model, valid_result, dataset_type="valid"):
+  steps = min(get_steps(dataset_type, config.mode), dataset.data_szie)
   with torch.no_grad():
     for i in tqdm(range(0, steps), total=steps):
       Cwid, Qwid, answer, ids = dataset[i]
@@ -146,7 +146,7 @@ def test(model, dataset, epoch=0):
   losses = []
   valid_result = []
   print("start test:")
-  loss, metrics = test_model(dataset, losses, model, valid_result)
+  loss, metrics = test_model(dataset, losses, model, valid_result, dataset_type="test")
   record_info(losses,f1=[metrics["f1"]], em=[metrics["exact_match"]],
               valid_result=valid_result, epoch=epoch,
               r_type="test")
@@ -229,7 +229,7 @@ def train_entry():
   for epoch in range(config.start_epoch, epochs):
     logger.info(f"Epoch: {epoch}")
     train(model, optimizer, scheduler, ema, train_dataset, start_index,
-          config.num_steps, epoch)
+          get_steps("train", config.mode), epoch)
           # 1, epoch) # todo: debug 完删掉
     valid(model, dev_dataset, epoch)
     metrics = test(model, trial_dataset, epoch)

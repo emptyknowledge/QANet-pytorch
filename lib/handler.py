@@ -321,32 +321,74 @@ def get_trainable_embedding(vocab_size):
   #   return torch.load(config.embedding_trainable_model).to(config.device).requires_grad_(True)
 
 
-def adapt_conv2D(input_val):
+def adapt_conv2D(input_tensor, origin_shape):
   """
   将输入转换为适合二维 conv （卷积）的维度.
   词向量输入： batch_size, length, word_dim, 二维卷积需要的维度: batch_size, length, word_dim, channel,
   将输入增加一维。
   Args:
-    input_val:
+    input_tensor:
 
   Returns:
 
   """
-  if len(input_val.shape) == 3:
-    return torch.unsqueeze(input_val, -1)
+  origin_shape = list(origin_shape)
+  if len(origin_shape) == 3:
+    origin_shape.append(1)
+    input_tensor = input_tensor.contiguous().view(*origin_shape)
 
-  return input_val
+  return input_tensor
 
-def adapt_line(input_val):
+def adapt_normal(input_tensor, origin_shape):
   """
-  对线性模块适配输入值. Line 模块输入三维，但 conv2d 出来后是 4 维.
+  调整 normal 操作所需的 input tensor shape.
   Args:
-    input_val:
+    input_tensor:
 
   Returns:
 
   """
-  if len(input_val.shape) == 4 and input_val.shape[-1] == 1:
-    return torch.squeeze(input_val, -1)
+  origin_shape = list(origin_shape)
+  input_tensor = input_tensor.contiguous().view(origin_shape[0], -1)
 
-  return input_val
+  return input_tensor
+
+def adapt_line(input_tensor, origin_shape):
+  """
+  调整 normal 操作所需的 input tensor shape.
+  Args:
+    input_tensor:
+
+  Returns:
+
+  """
+  origin_shape = list(origin_shape)
+  new_shape = origin_shape
+  if new_shape[-1] != 1:
+    new_shape.append(1)
+  input_tensor = input_tensor.contiguous().view(*new_shape)
+
+  return input_tensor
+
+
+def get_steps(data_set_type, mode="train"):
+  """
+
+  Args:
+    data_set_type:
+    mode:train, debug
+
+  Returns:
+
+  """
+  if mode == "debug":
+    return 1
+
+  if data_set_type == "train":
+    return config.num_steps
+
+  if data_set_type == "valid":
+    return config.val_num_steps
+
+  if data_set_type == "test":
+    return config.test_num_steps

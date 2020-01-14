@@ -106,7 +106,7 @@ class CMRC_QADataSet(Dataset):
       ids = ids.tolist()
 
     data = read_data(self.data_path)
-    if isinstance(ids, str):
+    if isinstance(ids, (str, int)):
       if key == "whole":
         return data[ids]
       else:
@@ -123,19 +123,4 @@ class CMRC_QADataSet(Dataset):
       return result
 
 
-    if ids.shape[0] > 1:
-      result = []
-      for id in ids:
-        if key == "whole":
-          result.append(data[id])
-        else:
-          result.append(data[id].get(key))
-
-      return result
-
-    if ids.shape[0] == 1:
-      if key == "whole":
-        return data[ids]
-      else:
-        return data[ids].get(key)
 

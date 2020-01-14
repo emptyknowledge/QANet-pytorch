@@ -45,16 +45,16 @@ bert_dim = 1024 #Embedding dimension for char
 embedding_trainable_dim = 512 # 可训练词向量维度
 embedding_trainable_model = "./model/embedding_trainable_model.bin" # 可训练词向量维度
 
-para_limit = 512 #Limit length for paragraph
-ques_limit = 20 #Limit length for question
-ans_limit = 30 #Limit length for answers
-char_limit = 16 #Limit length for character
+context_length_limit = 512 #Limit length for paragraph
+ques_length_limit = 20 #Limit length for question
+ans_length_limit = 30 #Limit length for answers
+char_length_limit = 16 #Limit length for character
 word_count_limit = -1 #Min count for word
 char_count_limit = -1 #Min count for char
-context_kernel_size = 7
+context_kernel_size = 5
 question_kernel_size = 5
 
-is_continue = True
+is_continue = False
 model_dir = "./model"
 continue_checkpoint = 11100 # 500 的时候 loss 到达最低处 2.0+
 capacity = 15000 #Batch size of dataset shuffle

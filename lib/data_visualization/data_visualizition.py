@@ -115,9 +115,11 @@ def draw_bar(data, labels, x_label, y_label, title, width=1, interval=1,
   ax.set_xlabel(x_label + "".join(x_tick_labels))
   ax.set_title(title)
   ax.set_xticks(x)
-  # 这里需要单独指定字体，否则输出是乱码
-  ax.set_xticklabels(x_tick_labels, fontdict={"fontproperties": myfont})
-  # ax.legend()
+  # 这里需要单独指定字体，否则输出是乱码,
+  # 注：此处如果 x trick labels 是单个字符与单个标点符号的组合，会导致label 值显示一半
+  # ax.set_xticklabels(x_tick_labels, fontdict={"fontproperties": myfont})
+  ax.set_xticklabels(x_tick_labels)
+  ax.legend()
 
   # for rect in rects:
   #   autolabel(rect, ax)
@@ -150,6 +152,6 @@ def test_draw_bar():
   pass
 
 if __name__ == "__main__":
-  # view_limited_loss(max_loss=100)
-  test_draw_bar()
+  view_limited_loss(max_loss=100)
+  # test_draw_bar()
 
