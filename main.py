@@ -68,6 +68,7 @@ def train(model, optimizer, scheduler, ema, dataset, start_step, steps_num, epoc
   model.train()
   clamped_losses = []
   origin_losses = []
+  extract_result = []
   logger.info("start_step train:")
   for step in tqdm(range(start_step, steps_num, dataset.batch_size), total=steps_num - start_step):
     optimizer.zero_grad()
@@ -75,11 +76,17 @@ def train(model, optimizer, scheduler, ema, dataset, start_step, steps_num, epoc
     Cwid, Qwid = Cwid.to(device), Qwid.to(device)
     p1, p2 = model(Cwid, Qwid)
     y1, y2 = answer[:, 0].view(-1).to(device), answer[:, 1].view(-1).to(device)
-    loss1 = F.nll_loss(p1, y1, reduction='mean')
-    loss2 = F.nll_loss(p2, y2, reduction='mean')
+    loss1 = F.nll_loss(torch.log(p1), y1, reduction='mean')
+    loss2 = F.nll_loss(torch.log(p2), y2, reduction='mean')
     loss = (loss1 + loss2) / 2
     logger.info(f"Origin Loss: {loss}, step: {step}")
     origin_losses.append(loss.item())
+
+    pre_start, pre_end, _ = find_max_proper_batch(p1, p2)
+    extract_result.extend(
+      convert_valid_result(Cwid, Qwid, y1, y2, pre_start, pre_end, dataset,
+                           ids))
+
     loss = torch.clamp(loss, min=config.min_loss, max=config.max_loss)
     logger.info(f"Clamped Loss: {loss}, step: {step}")
     clamped_losses.append(loss.item())
@@ -94,6 +101,12 @@ def train(model, optimizer, scheduler, ema, dataset, start_step, steps_num, epoc
       record_info(origin_losses, r_type="train", epoch=step)
       origin_losses = []
   loss_avg = np.mean(clamped_losses)
+  metrics = evaluate_valid_result(extract_result)
+  metrics["loss"] = loss
+  record_info(loss_avg, f1=[metrics["f1"]], em=[metrics["exact_match"]],
+              valid_result=extract_result,
+              epoch=epoch,
+              r_type="train")
   logger.info("Epoch {:8d} loss {:8f}\n".format(epoch, loss_avg))
 
 @fn_timer(logger)

@@ -363,12 +363,12 @@ class Pointer(nn.Module):
     Y2 = torch.matmul(X2, self.w2)
     Y1 = mask_logits(Y1, mask)
     Y2 = mask_logits(Y2, mask)
-    if self.training:
-      p1 = F.log_softmax(Y1, dim=1)
-      p2 = F.log_softmax(Y2, dim=1)
-    else:
-      p1 = F.softmax(Y1, dim=1)
-      p2 = F.softmax(Y2, dim=1)
+    # if self.training:
+    #   p1 = F.log_softmax(Y1, dim=1)
+    #   p2 = F.log_softmax(Y2, dim=1)
+    # else:
+    p1 = F.softmax(Y1, dim=1)
+    p2 = F.softmax(Y2, dim=1)
     return p1, p2
 
 
