@@ -74,15 +74,15 @@ def train(model, optimizer, scheduler, ema, dataset, start_step, steps_num, epoc
     optimizer.zero_grad()
     Cwid, Qwid, answer, ids = dataset[step]
     Cwid, Qwid = Cwid.to(device), Qwid.to(device)
-    p1, p2 = model(Cwid, Qwid)
+    p1, p2, p1_softmax, p2_softmax = model(Cwid, Qwid)
     y1, y2 = answer[:, 0].view(-1).to(device), answer[:, 1].view(-1).to(device)
-    loss1 = F.nll_loss(torch.log(p1), y1, reduction='mean')
-    loss2 = F.nll_loss(torch.log(p2), y2, reduction='mean')
+    loss1 = F.nll_loss(p1, y1, reduction='mean')
+    loss2 = F.nll_loss(p2, y2, reduction='mean')
     loss = (loss1 + loss2) / 2
     logger.info(f"Origin Loss: {loss}, step: {step}")
     origin_losses.append(loss.item())
 
-    pre_start, pre_end, _ = find_max_proper_batch(p1, p2)
+    pre_start, pre_end, _ = find_max_proper_batch(p1_softmax, p2_softmax)
     extract_result.extend(
       convert_valid_result(Cwid, Qwid, y1, y2, pre_start, pre_end, dataset,
                            ids))

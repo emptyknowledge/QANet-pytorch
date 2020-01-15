@@ -363,13 +363,18 @@ class Pointer(nn.Module):
     Y2 = torch.matmul(X2, self.w2)
     Y1 = mask_logits(Y1, mask)
     Y2 = mask_logits(Y2, mask)
-    # if self.training:
-    #   p1 = F.log_softmax(Y1, dim=1)
-    #   p2 = F.log_softmax(Y2, dim=1)
-    # else:
-    p1 = F.softmax(Y1, dim=1)
-    p2 = F.softmax(Y2, dim=1)
-    return p1, p2
+    if self.training:
+      p1 = F.log_softmax(Y1, dim=1)
+      p2 = F.log_softmax(Y2, dim=1)
+      p1_softmax = F.softmax(Y1, dim=1)
+      p2_softmax = F.softmax(Y2, dim=1)
+      return p1, p2, p1_softmax, p2_softmax
+    else:
+      p1 = F.softmax(Y1, dim=1)
+      p2 = F.softmax(Y2, dim=1)
+      return p1, p2
+    # return p1, p2
+
 
 
 class ContextConv(nn.Module):
@@ -460,5 +465,5 @@ class QANet(nn.Module):
     for enc in self.model_enc_blks: M2 = enc(M2, cmask)
     M3 = M2
     for enc in self.model_enc_blks: M3 = enc(M3, cmask)
-    p1, p2 = self.out(M1, M2, M3, cmask)
-    return p1, p2
+    predict_result = self.out(M1, M2, M3, cmask)
+    return predict_result
