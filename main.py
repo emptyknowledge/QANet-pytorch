@@ -102,8 +102,8 @@ def train(model, optimizer, scheduler, ema, dataset, start_step, steps_num, epoc
       origin_losses = []
   loss_avg = np.mean(clamped_losses)
   metrics = evaluate_valid_result(extract_result)
-  metrics["loss"] = loss
-  record_info(loss_avg, f1=[metrics["f1"]], em=[metrics["exact_match"]],
+  metrics["loss"] = loss_avg
+  record_info(origin_losses, f1=[metrics["f1"]], em=[metrics["exact_match"]],
               valid_result=extract_result,
               epoch=epoch,
               r_type="train")
@@ -115,12 +115,12 @@ def valid(model, dataset, epoch=0):
   valid_result = []
   losses = []
   logger.info("start valid:")
-  loss, metrics = test_model(dataset, losses, model, valid_result, dataset_type="valid")
+  losses, metrics = test_model(dataset, losses, model, valid_result, dataset_type="valid")
   record_info(losses, f1=[metrics["f1"]], em=[metrics["exact_match"]],
               valid_result=valid_result,
               epoch=epoch,
               r_type="valid")
-  logger.info("VALID loss {:8f} F1 {:8f} EM {:8f}\n".format(loss, metrics["f1"],
+  logger.info("VALID loss {:8f} F1 {:8f} EM {:8f}\n".format(metrics["loss"], metrics["f1"],
                                                             metrics["exact_match"]))
 
 
@@ -150,7 +150,7 @@ def test_model(dataset, losses, model, valid_result, dataset_type="valid"):
   loss = np.mean(losses)
   metrics = evaluate_valid_result(valid_result)
   metrics["loss"] = loss
-  return loss, metrics
+  return losses, metrics
 
 
 @fn_timer(logger)
@@ -159,11 +159,11 @@ def test(model, dataset, epoch=0):
   losses = []
   valid_result = []
   print("start test:")
-  loss, metrics = test_model(dataset, losses, model, valid_result, dataset_type="test")
+  losses, metrics = test_model(dataset, losses, model, valid_result, dataset_type="test")
   record_info(losses,f1=[metrics["f1"]], em=[metrics["exact_match"]],
               valid_result=valid_result, epoch=epoch,
               r_type="test")
-  print("TEST loss {:8f} F1 {:8f} EM {:8f}\n".format(loss, metrics["f1"],
+  print("TEST loss {:8f} F1 {:8f} EM {:8f}\n".format(metrics["loss"], metrics["f1"],
                                                      metrics["exact_match"]))
   return metrics
 

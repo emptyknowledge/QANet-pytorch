@@ -12,7 +12,7 @@ device = "cpu" # cpu、 cuda
 
 bert_path = "./data/model/RoBERTa-wwm-ext-large"
 
-mode = "train" # train, classify
+mode = "debug" # train, classify
 
 target_dir = "data"
 event_dir = "log"
