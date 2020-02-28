@@ -11,6 +11,7 @@ glove_word_file = os.path.join(home, "data", "glove", "glove.840B.300d.txt")
 device = "cpu" # cpu、 cuda
 
 bert_path = "./data/model/RoBERTa-wwm-ext-large"
+vocab_file = "./data/model/RoBERTa-wwm-ext-large/vocab.txt"
 
 mode = "debug" # train, classify
 
@@ -31,6 +32,8 @@ test_meta_file = os.path.join(target_dir, "test_meta.json")
 word2idx_file = os.path.join(target_dir, "word2idx.json")
 char2idx_file = os.path.join(target_dir, "char2idx.json")
 answer_file = os.path.join(answer_dir, "answer.json")
+
+do_lower_case = True
 
 dataset_name = "cmcr2018"
 dataset_dir = {
