@@ -74,11 +74,30 @@ def test_bert():
   # print(transfer_index(text, token, 2, 3, 9, 10))
 
 def test_a():
-  # tensor1 = torch.randn(3)
-  # tensor2 = torch.randn(3)
-  # torch.matmul(tensor1, tensor2).size()
-  for i in range(0, 10,2):
-    print(i)
+  a = torch.Tensor(3,4)
+  print(a.shape)
+  b = a.permute((1,0))
+  print(b.shape)
+  print(a.shape)
+
+def test_class():
+  class A:
+    def __init__(self):
+      self.a=1
+      self.b = 2
+
+    def __getitem__(self, item):
+      return item
+
+    # def test(self):
+    #   co = self.__init__.func_code
+    #   print(co.co_name)
+
+
+  # print(dir(A()))
+  a = A()
+  print(a(2,2))
+  # print(A().test())
 
 if __name__ == "__main__":
   test_a()

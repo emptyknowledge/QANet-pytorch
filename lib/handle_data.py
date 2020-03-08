@@ -2,10 +2,11 @@
 import six
 import collections
 import json
-from tokenization import *
-import tokenization
-import config as cf
-from config import logger
+from lib.tokenization import *
+from lib.utils import to_torch_tensor
+
+import lib.config as cf
+from lib.config import logger
 
 class SquadExample(object):
   """A single training/test example for simple sequence classification.
@@ -43,7 +44,8 @@ class InputFeatures(object):
                segment_ids,
                input_span_mask,
                start_position=None,
-               end_position=None):
+               end_position=None,
+               to_torch_tensor=True):
     self.unique_id = unique_id
     self.example_index = example_index
     self.doc_span_index = doc_span_index
@@ -56,6 +58,16 @@ class InputFeatures(object):
     self.input_span_mask = input_span_mask
     self.start_position = start_position
     self.end_position = end_position
+    if to_torch_tensor:
+      self.to_torch_tensor()
+
+  def to_torch_tensor(self):
+    self.input_ids = to_torch_tensor(self.input_ids)
+    self.input_mask = to_torch_tensor(self.input_mask)
+    self.segment_ids = to_torch_tensor(self.segment_ids)
+    self.input_span_mask = to_torch_tensor(self.input_span_mask)
+    self.start_position = to_torch_tensor(self.start_position)
+    self.end_position = to_torch_tensor(self.end_position)
 
 #
 def read_squad_examples(input_file, is_training):
@@ -76,7 +88,7 @@ def read_squad_examples(input_file, is_training):
       k = 0
       temp_word = ""
       for c in paragraph_text:
-        if tokenization._is_whitespace(c):
+        if is_whitespace(c):
           char_to_word_offset.append(k - 1)
           continue
         else:
@@ -119,7 +131,7 @@ def read_squad_examples(input_file, is_training):
             actual_text = "".join(
               doc_tokens[start_position:(end_position + 1)])
             cleaned_answer_text = "".join(
-              tokenization.whitespace_tokenize(orig_answer_text))
+              whitespace_tokenize(orig_answer_text))
             if cf.do_lower_case:
               cleaned_answer_text = cleaned_answer_text.lower()
             if actual_text.find(cleaned_answer_text) == -1:
@@ -145,6 +157,7 @@ def convert_examples_to_features(examples, tokenizer, max_seq_length,
                                  output_fn):
   """Loads a data file into a list of `InputBatch`s."""
 
+  input_features = []
   unique_id = 1000000000
   tokenizer = ChineseFullTokenizer(vocab_file=cf.vocab_file, do_lower_case=cf.do_lower_case)
 
@@ -269,7 +282,7 @@ def convert_examples_to_features(examples, tokenizer, max_seq_length,
         logger.info("example_index: %s" % (example_index))
         logger.info("doc_span_index: %s" % (doc_span_index))
         logger.info("tokens: %s" % " ".join(
-          [tokenization.printable_text(x) for x in tokens]))
+          [printable_text(x) for x in tokens]))
         logger.info("token_to_orig_map: %s" % " ".join(
           ["%d:%d" % (x, y) for (x, y) in six.iteritems(token_to_orig_map)]))
         logger.info("token_is_max_context: %s" % " ".join([
@@ -287,7 +300,7 @@ def convert_examples_to_features(examples, tokenizer, max_seq_length,
           logger.info("start_position: %d" % (start_position))
           logger.info("end_position: %d" % (end_position))
           logger.info(
-            "answer: %s" % (tokenization.printable_text(answer_text)))
+            "answer: %s" % (printable_text(answer_text)))
 
       feature = InputFeatures(
         unique_id=unique_id,
@@ -304,9 +317,12 @@ def convert_examples_to_features(examples, tokenizer, max_seq_length,
         end_position=end_position)
 
       # Run callback
-      output_fn(feature)
+      # output_fn(feature)
+      feature.to_torch_tensor()
+      input_features.append(feature)
 
       unique_id += 1
+    return input_features
 
 
 def _improve_answer_span(doc_tokens, input_start, input_end, tokenizer,

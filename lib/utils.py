@@ -7,6 +7,7 @@
 
 import os
 import torch
+from pytorch_transformers import BertModel
 from pytorch_transformers.convert_tf_checkpoint_to_pytorch import convert_tf_checkpoint_to_pytorch
 
 def write2file(content, file_path, is_continue=True):
@@ -127,6 +128,20 @@ def tf2torch():
 
   """
 
+def to_torch_tensor(value):
+  """
+  python 数据类型转 torch.
+  Args:
+    value:
+
+  Returns:
+
+  """
+  return torch.Tensor(value).long()
+
+
+def reshape_tensor(tensor, shape):
+  return tensor.contiguous().view(*shape)
 
 def test():
   import random

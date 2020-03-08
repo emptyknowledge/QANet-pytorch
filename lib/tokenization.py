@@ -25,6 +25,44 @@ import six
 import tensorflow as tf
 
 
+#
+def customize_tokenizer(text, do_lower_case=False):
+  tokenizer = BasicTokenizer(do_lower_case=do_lower_case)
+  temp_x = ""
+  text = convert_to_unicode(text)
+  for c in text:
+    if tokenizer._is_chinese_char(ord(c)) or _is_punctuation(c) or is_whitespace(c) or _is_control(c):
+      temp_x += " " + c + " "
+    else:
+      temp_x += c
+  if do_lower_case:
+    temp_x = temp_x.lower()
+  return temp_x.split()
+
+#
+class ChineseFullTokenizer(object):
+  """Runs end-to-end tokenziation."""
+
+  def __init__(self, vocab_file, do_lower_case=False):
+    self.vocab = load_vocab(vocab_file)
+    self.inv_vocab = {v: k for k, v in self.vocab.items()}
+    self.wordpiece_tokenizer = WordpieceTokenizer(vocab=self.vocab)
+    self.do_lower_case = do_lower_case
+  def tokenize(self, text):
+    split_tokens = []
+    for token in customize_tokenizer(text, do_lower_case=self.do_lower_case):
+      for sub_token in self.wordpiece_tokenizer.tokenize(token):
+        split_tokens.append(sub_token)
+
+    return split_tokens
+
+  def convert_tokens_to_ids(self, tokens):
+    return convert_by_vocab(self.vocab, tokens)
+
+  def convert_ids_to_tokens(self, ids):
+    return convert_by_vocab(self.inv_vocab, ids)
+
+
 def validate_case_matches_checkpoint(do_lower_case, init_checkpoint):
   """Checks whether the casing config is consistent with the checkpoint name."""
 
@@ -87,7 +125,7 @@ def convert_to_unicode(text):
   elif six.PY2:
     if isinstance(text, str):
       return text.decode("utf-8", "ignore")
-    elif isinstance(text, unicode):
+    elif isinstance(text, str):
       return text
     else:
       raise ValueError("Unsupported string type: %s" % (type(text)))
@@ -110,7 +148,7 @@ def printable_text(text):
   elif six.PY2:
     if isinstance(text, str):
       return text
-    elif isinstance(text, unicode):
+    elif isinstance(text, str):
       return text.encode("utf-8")
     else:
       raise ValueError("Unsupported string type: %s" % (type(text)))
@@ -290,7 +328,7 @@ class BasicTokenizer(object):
       cp = ord(char)
       if cp == 0 or cp == 0xfffd or _is_control(char):
         continue
-      if _is_whitespace(char):
+      if is_whitespace(char):
         output.append(" ")
       else:
         output.append(char)
@@ -359,7 +397,7 @@ class WordpieceTokenizer(object):
     return output_tokens
 
 
-def _is_whitespace(char):
+def is_whitespace(char):
   """Checks whether `chars` is a whitespace character."""
   # \t, \n, and \r are technically contorl characters but we treat them
   # as whitespace since they are generally considered as such.

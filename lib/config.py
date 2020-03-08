@@ -44,7 +44,7 @@ glove_char_size = 94 #Corpus size for Glove
 glove_word_size = int(2.2e6) #Corpus size for Glove
 glove_dim = 300 #Embedding dimension for Glove
 char_dim = 64 #Embedding dimension for char
-bert_dim = 1024 #Embedding dimension for char
+bert_dim = 768 #Embedding dimension for char
 embedding_trainable_dim = 512 # 可训练词向量维度
 embedding_trainable_model = "./model/embedding_trainable_model.bin" # 可训练词向量维度
 
@@ -56,7 +56,9 @@ word_count_limit = -1 #Min count for word
 char_count_limit = -1 #Min count for char
 context_kernel_size = 5
 question_kernel_size = 5
+doc_stride = 50
 
+is_train = True
 is_continue = False
 model_dir = "./model"
 continue_checkpoint = 11100 # 500 的时候 loss 到达最低处 2.0+
@@ -90,6 +92,7 @@ steps_num = 5000 # The num of train step in one epoch.
 interval_save = 50 # The interval of save model.
 min_loss = 0 # The scope of loss.可能出现 loss 非常大的情况
 max_loss = None
+max_postion = 512
 
 # Extensions (Uncomment corresponding line in download.sh to download the required data)
 glove_char_file = os.path.join(home, "data", "glove", "glove.840B.300d-char.txt")

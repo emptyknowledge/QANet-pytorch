@@ -16,7 +16,7 @@ from lib.config import logger
 from my_py_toolkit.file.file_toolkit import *
 from lib.utils import *
 from my_py_toolkit.decorator.decorator import fn_timer
-
+from pytorch_transformers import BertModel
 
 def evaluate_valid_result(valid_result):
   f1 = exact_match = total = 0
@@ -160,6 +160,17 @@ def load_model(model_dir, check_point):
   model_path = os.path.join(model_dir, f"model_{check_point}.pt")
   return torch.load(model_path)
 
+def load_bert(model_path, device):
+  """
+  加载与训练的 bert.
+  Args:
+    model_path:
+    device:
+
+  Returns:
+
+  """
+  return BertModel.from_pretrained(model_path).to(device)
 
 @fn_timer(logger)
 def get_model():
@@ -210,7 +221,7 @@ def get_dataset(data_type="train"):
   data_path = [path for path in get_file_paths(data_dir) if data_type in get_file_name(path)][0]
   if "cmcr" in config.dataset_name:
     dataset = CMRC_QADataSet(data_path,
-                             config.batch_size)
+                             config.is_train)
     return dataset
   else:
     dataset = QADataSet(data_path,
