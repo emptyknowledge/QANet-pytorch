@@ -93,6 +93,11 @@ interval_save = 50 # The interval of save model.
 min_loss = 0 # The scope of loss.可能出现 loss 非常大的情况
 max_loss = None
 max_postion = 512
+attention_probs_dropout_prob = 0.1
+attention_use_bias = True
+encoder_hidden_layers = 3
+encoder_intermediate_dim = 3072
+encoder_dropout_prob = 0.1
 
 # Extensions (Uncomment corresponding line in download.sh to download the required data)
 glove_char_file = os.path.join(home, "data", "glove", "glove.840B.300d-char.txt")

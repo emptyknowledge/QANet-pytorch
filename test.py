@@ -74,11 +74,9 @@ def test_bert():
   # print(transfer_index(text, token, 2, 3, 9, 10))
 
 def test_a():
-  a = torch.Tensor(3,4)
-  print(a.shape)
-  b = a.permute((1,0))
-  print(b.shape)
-  print(a.shape)
+  import torch.nn.functional as F
+  f.layer_norm()
+
 
 def test_class():
   class A:
@@ -98,6 +96,18 @@ def test_class():
   a = A()
   print(a(2,2))
   # print(A().test())
+
+def te_soft_max():
+  import torch.nn as nn
+
+  m = nn.Softmax(dim=0)
+  n = nn.Softmax(dim=1)
+  k = nn.Softmax(dim=2)
+  input = torch.randn(2, 2, 3)
+  print(input)
+  print(m(input))
+  print(n(input))
+  print(k(input))
 
 if __name__ == "__main__":
   test_a()
