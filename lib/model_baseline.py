@@ -10,6 +10,7 @@ import torch
 from lib.handler import load_bert
 import lib.config as cf
 from lib.utils import reshape_tensor
+from torch.nn import functional
 
 class Attention(torch.nn.Module):
   """
@@ -98,8 +99,10 @@ class ModelBaseline(torch.nn.Module):
                encoder_dropout_prob=cf.encoder_dropout_prob,
                attention_head_num=cf.num_heads,
                attention_probs_dropout_prob=cf.attention_probs_dropout_prob,
-               attention_use_bias=cf.attention_use_bias):
+               attention_use_bias=cf.attention_use_bias,
+               training=True):
     """"""
+    self.training = training
     # embedding
     self.bert = load_bert(bert_path, device)
     self.dropout = torch.nn.Dropout(dropout)
@@ -112,13 +115,15 @@ class ModelBaseline(torch.nn.Module):
     self.attention_layer = Attention(pos_dim, attention_head_num, attention_probs_dropout_prob, attention_use_bias)
 
     # encoder
+    self.encoder_dropout_prob = encoder_dropout_prob
     self.encoder_linear_1 = torch.nn.ModuleList([torch.nn.Linear(self.dim, self.dim)
                                                  for i in range(self.encoder_hidden_layers)])
     self.encoder_line_intermidia = torch.nn.ModuleList([torch.nn.Linear(self.dim, encoder_intermediate_dim)
                                                         for i in range(self.encoder_hidden_layers)])
     self.encoder_line_2 = torch.nn.ModuleList([torch.nn.Linear(encoder_intermediate_dim, self.dim)
                                                for i in range(self.encoder_hidden_layers)])
-    self.encoder_normal = torch.nn.ModuleList([torch.nn.LayerNorm() for _ in range(self.encoder_hidden_layers)])
+    
+    self.encoder_normal = torch.nn.ModuleList([torch.nn.LayerNorm(max_postion * pos_dim) for _ in range(self.encoder_hidden_layers)])
 
 
   def init_positon_embedding(self, max_postion, pos_dim):
@@ -147,14 +152,23 @@ class ModelBaseline(torch.nn.Module):
   def encoder(self, embeddings, input_mask):
     prelayer_output = embeddings
     for index in range(self.encoder_hidden_layers):
+      # batchsize, sequence_length, posi_duim
       embeddings = self.attention_layer(embeddings, embeddings, input_mask)
       embeddings = self.encoder_linear_1[index](embeddings)
       embeddings = self.encoder_line_intermidia[index](embeddings)
       embeddings = self.encoder_line_2[index](embeddings)
+      embeddings += prelayer_output
+      # todo: dropout、 normal
+      embeddings = functional.dropout(embeddings, self.encoder_dropout_prob, self.training)
+      embeddings = self.encoder_normal[index]
+      prelayer_output = embeddings
+    return embeddings
 
 
 
 
+  def pointer(self, embeddings, input_mask):
+    """"""
 
 
 
@@ -164,3 +178,5 @@ class ModelBaseline(torch.nn.Module):
 
   def forward(self, input_ids, input_mask, segment_ids):
     embedding = self.embedding(input_ids, segment_ids)
+    embedding = self.encoder(embedding, input_mask)
+    

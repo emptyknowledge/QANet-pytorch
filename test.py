@@ -109,5 +109,15 @@ def te_soft_max():
   print(n(input))
   print(k(input))
 
+def test_mask():
+  a = torch.Tensor(3,3,3)
+  mask = torch.Tensor([1,1,0])
+  mask = mask.unsqueeze(-1)
+  mask = mask.unsqueeze(-1)
+  print(mask)
+  print(mask.shape)
+  print(a.shape)
+  print(torch.mul(a, mask))
+
 if __name__ == "__main__":
-  test_a()
+  test_mask()
