@@ -9,18 +9,10 @@ import torch.nn.functional as f
 from pytorch_transformers import *
 
 def test():
-  a = torch.Tensor([[1,1],[0,0]])
-  a = torch.randn(3,1)
+  a= torch.Tensor(3,3,2)
+  # s = torch.nn.Softmax(-1)
   print(a)
-  b = (torch.zeros_like(a) == a).float()
-  print(b.shape)
-  print(b)
-  c = b.unsqueeze(2)
-  print(c.shape)
-  print(c)
-  d = b.expand(1,2, 2)
-  print(d.shape)
-  print(d)
+  print(a[:,:,0])
 
 def test_expand():
   a = torch.randn(2,2)
@@ -73,10 +65,6 @@ def test_bert():
     print(index, val, index_in_token, val_in_token)
   # print(transfer_index(text, token, 2, 3, 9, 10))
 
-def test_a():
-  import torch.nn.functional as F
-  f.layer_norm()
-
 
 def test_class():
   class A:
@@ -103,11 +91,15 @@ def te_soft_max():
   m = nn.Softmax(dim=0)
   n = nn.Softmax(dim=1)
   k = nn.Softmax(dim=2)
+  j = nn.Softmax(dim=-1)
+  l = nn.Softmax(dim=-2)
   input = torch.randn(2, 2, 3)
   print(input)
   print(m(input))
   print(n(input))
   print(k(input))
+  print(j(input))
+  print(l(input))
 
 def test_mask():
   a = torch.Tensor(3,3,3)
@@ -119,5 +111,7 @@ def test_mask():
   print(a.shape)
   print(torch.mul(a, mask))
 
+
+
 if __name__ == "__main__":
-  test_mask()
+  test()

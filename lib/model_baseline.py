@@ -9,7 +9,7 @@ import math
 import torch
 from lib.handler import load_bert
 import lib.config as cf
-from lib.utils import reshape_tensor
+from lib.utils import reshape_tensor, mask, find_max_proper_batch
 from torch.nn import functional
 
 class Attention(torch.nn.Module):
@@ -125,6 +125,10 @@ class ModelBaseline(torch.nn.Module):
     
     self.encoder_normal = torch.nn.ModuleList([torch.nn.LayerNorm(max_postion * pos_dim) for _ in range(self.encoder_hidden_layers)])
 
+    # pointer
+    self.pointer_linear = torch.nn.Linear(self.dim, 2)
+    self.pointer_softmax = torch.nn.Softmax(dim=-2)
+
 
   def init_positon_embedding(self, max_postion, pos_dim):
     posi_embedding = torch.Tensor(max_postion, pos_dim)
@@ -169,14 +173,22 @@ class ModelBaseline(torch.nn.Module):
 
   def pointer(self, embeddings, input_mask):
     """"""
+    # size: batch_size, seq_length, 2
+    embeddings = self.pointer(embeddings)
+    embeddings = mask(embeddings, input_mask, -1)
+    embeddings = self.pointer_softmax(embeddings)
+    start_softmax = embeddings[:,:,0]
+    end_softmax = embeddings[:,:,1]
+    start, end, pro = find_max_proper_batch(start_softmax, end_softmax)
+    return start, end, pro
 
 
-
-    
-
-
-
-  def forward(self, input_ids, input_mask, segment_ids):
+  def forward(self, input_ids, input_mask, segment_ids, return_probability=False):
     embedding = self.embedding(input_ids, segment_ids)
     embedding = self.encoder(embedding, input_mask)
+    start, end, probability = self.pointer(embedding, input_mask)
+    if not return_probability:
+      return start, end
+    else:
+      return start, end, probability
     
