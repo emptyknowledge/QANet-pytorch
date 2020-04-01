@@ -127,7 +127,7 @@ class ModelBaseline(torch.nn.Module):
 
     # pointer
     self.pointer_linear = torch.nn.Linear(self.dim, 2)
-    self.pointer_softmax = torch.nn.Softmax(dim=-2)
+    # self.pointer_softmax = torch.nn.Softmax(dim=-2)
 
 
   def init_positon_embedding(self, max_postion, pos_dim):
@@ -176,11 +176,15 @@ class ModelBaseline(torch.nn.Module):
     # size: batch_size, seq_length, 2
     embeddings = self.pointer(embeddings)
     embeddings = mask(embeddings, input_mask, -1)
-    embeddings = self.pointer_softmax(embeddings)
-    start_softmax = embeddings[:,:,0]
-    end_softmax = embeddings[:,:,1]
-    start, end, pro = find_max_proper_batch(start_softmax, end_softmax)
-    return start, end, pro
+    start_embeddings = embeddings[:, :, 0].squeeze(dim=-1)
+    end_embeddings = embeddings[:, :, 1].squeeze(dim=-1)
+    return start_embeddings, end_embeddings
+
+    # embeddings = self.pointer_softmax(embeddings)
+    # start_softmax = embeddings[:,:,0]
+    # end_softmax = embeddings[:,:,1]
+    # start, end, pro = find_max_proper_batch(start_softmax, end_softmax)
+    # return start, end, pro
 
 
   def forward(self, input_ids, input_mask, segment_ids, return_probability=False):

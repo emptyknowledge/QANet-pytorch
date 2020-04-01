@@ -5,6 +5,7 @@
 # cython: language_level=3
 #
 
+import importlib
 import os
 import torch
 from pytorch_transformers import BertModel
@@ -162,6 +163,15 @@ def mask(tensor, tensor_mask, mask_dim):
   return tensor * tensor_mask
 
 
+def load_class(package, name, class_name):
+  """"""
+  if not name:
+    return
+
+  module_addr = f"{package}.{name}"
+  module = importlib.import_module(module_addr, ".")
+  class_object = getattr(module, class_name)
+  return class_object
 
 
 def test():

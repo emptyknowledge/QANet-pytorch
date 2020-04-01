@@ -9,10 +9,14 @@ import torch.nn.functional as f
 from pytorch_transformers import *
 
 def test():
-  a= torch.Tensor(3,3,2)
-  # s = torch.nn.Softmax(-1)
+  a= torch.Tensor(3,3,3)
+  # a = a.squeeze(-1)
+  s = torch.nn.Softmax(-1)
+  print(s(a))
   print(a)
-  print(a[:,:,0])
+  # print(torch.Tensor(3,3,1))
+  # print(torch.Tensor(3,3,1))
+  # print(torch.Tensor(3,3,1))
 
 def test_expand():
   a = torch.randn(2,2)

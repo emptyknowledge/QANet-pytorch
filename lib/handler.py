@@ -13,6 +13,7 @@ import lib.config as config
 from lib.CMRC_QADataSet import CMRC_QADataSet
 from lib.QADataSet import QADataSet
 from lib.config import logger
+import importlib
 from my_py_toolkit.file.file_toolkit import *
 from lib.utils import *
 from my_py_toolkit.decorator.decorator import fn_timer
@@ -150,6 +151,24 @@ def convert_valid_result(Cwids, Qwids, y1s, y2s, p1s, p2s, dataset, ids):
     })
   return result
 
+def convert_valid_result_baseline(y1s, y2s, p1s, p2s, dataset, ids):
+  """"""
+  result = []
+  for y1, y2, p1, p2, id in zip(y1s, y2s, p1s, p2s, ids):
+    input_feature = dataset.input_features(id)
+    # Cw_text = dataset.get_origin_data(id, "context")
+    # Qw_text = dataset.get_origin_data(id, "question")
+    # Aw_text = dataset.get_origin_data(id, "answer_text")
+    # y1, y2 = int(y1), int(y2)
+    p1, p2 = int(p1), int(p2)
+    result.append({
+      "context": Cw_text,
+      "question": Qw_text,
+      "labelled_answer": Aw_text,
+      "predict_answer": Cw_text[p1: p2]
+    })
+  return result
+
 
 def load_model(model_dir, check_point):
   """
@@ -173,15 +192,15 @@ def load_bert(model_path, device):
   return BertModel.from_pretrained(model_path).to(device)
 
 @fn_timer(logger)
-def get_model():
+def get_model(package, name, class_name):
   """
   Gets models.
   Returns:
 
   """
-  from lib.models import QANet
+  model_class = load_class(package, name, class_name)
   if not config.is_continue:
-    return QANet()
+    return model_class()
   else:
     logger.info(f"Continue train, continue_checkpoint: {config.continue_checkpoint}")
     model_path = os.path.join(config.model_dir,
@@ -189,7 +208,7 @@ def get_model():
     if not config.is_only_save_params:
       model = torch.load(model_path, map_location=config.device)
     else:
-      model = QANet()
+      model = model_class()
       model.load_state_dict(torch.load(model_path))
     return model
   

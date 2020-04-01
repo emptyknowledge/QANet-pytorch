@@ -10,8 +10,10 @@ glove_word_file = os.path.join(home, "data", "glove", "glove.840B.300d.txt")
 
 device = "cpu" # cpu、 cuda
 
-bert_path = "./data/model/RoBERTa-wwm-ext-large"
-vocab_file = "./data/model/RoBERTa-wwm-ext-large/vocab.txt"
+bert_path = "./data/model/bert"
+vocab_file = "./data/model/bert/vocab.txt"
+# bert_path = "./data/model/RoBERTa-wwm-ext-large"
+# vocab_file = "./data/model/RoBERTa-wwm-ext-large/vocab.txt"
 
 mode = "debug" # train, classify
 
@@ -37,8 +39,12 @@ do_lower_case = True
 
 dataset_name = "cmcr2018"
 dataset_dir = {
-  "cmcr2018": "./data/train/cmrc2018"
+  "cmcr2018": "./data/cmrc2018_squal_style"
 }
+
+model_name = "ModelBaseLine"
+model_package = "./lib"
+model_name = "model_baseline"
 
 glove_char_size = 94 #Corpus size for Glove
 glove_word_size = int(2.2e6) #Corpus size for Glove

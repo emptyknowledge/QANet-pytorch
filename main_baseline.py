@@ -70,23 +70,25 @@ def train(model, optimizer, scheduler, ema, dataset, start_step, steps_num, epoc
   origin_losses = []
   extract_result = []
   logger.info("start_step train:")
+  softmax = torch.nn.Softmax(dim=-1)
+  log_sofmax = torch.nn.LogSoftmax(dim=-1)
   for step in tqdm(range(start_step, steps_num, config.batch_size), total=steps_num - start_step):
     optimizer.zero_grad()
     # input_ids, input_mask, segment_ids, start_positions, end_positions, index
-    Cwid, Qwid, answer, ids = dataset.get(step, config.batch_size)
-    Cwid, Qwid = Cwid.to(device), Qwid.to(device)
-    p1, p2, p1_softmax, p2_softmax = model(Cwid, Qwid)
-    y1, y2 = answer[:, 0].view(-1).to(device), answer[:, 1].view(-1).to(device)
-    loss1 = F.nll_loss(p1, y1, reduction='mean')
-    loss2 = F.nll_loss(p2, y2, reduction='mean')
+    input_ids, input_mask, segment_ids, start_positions, end_positions, index = dataset.get(step, config.batch_size)
+    input_ids, input_mask, segment_ids = input_ids.to(device), input_mask.to(device), segment_ids.to(device)
+    start_positions, end_positions = start_positions.to(device), end_positions.to(device)
+    start_embeddings, end_embeddings = model(input_ids, input_mask, segment_ids)
+    loss1 = F.nll_loss(start_positions, log_sofmax(start_embeddings), reduction='mean')
+    loss2 = F.nll_loss(end_positions, log_sofmax(end_embeddings), reduction='mean')
     loss = (loss1 + loss2) / 2
     logger.info(f"Origin Loss: {loss}, step: {step}")
     origin_losses.append(loss.item())
 
-    pre_start, pre_end, _ = find_max_proper_batch(p1_softmax, p2_softmax)
+    pre_start, pre_end, _ = find_max_proper_batch(softmax(start_embeddings), softmax(end_embeddings))
     extract_result.extend(
-      convert_valid_result(Cwid, Qwid, y1, y2, pre_start, pre_end, dataset,
-                           ids))
+      convert_valid_result_baseline(start_positions, end_positions, pre_start, pre_end, dataset,
+                           index))
 
     loss = torch.clamp(loss, min=config.min_loss, max=config.max_loss)
     logger.info(f"Clamped Loss: {loss}, step: {step}")
@@ -278,10 +280,10 @@ def classify_data():
   classify(model, train_dataset)
 
 def main():
-  parser = argparse.ArgumentParser()
-  parser.add_argument("--mode", action="store", dest="mode", default="train",
-                      help="train/test/debug")
-  pargs = parser.parse_args()
+  # parser = argparse.ArgumentParser()
+  # parser.add_argument("--mode", action="store", dest="mode", default="train",
+  #                     help="train/test/debug")
+  # pargs = parser.parse_args()
   mode = config.mode # pargs.mode
   logger.info("Current device is {}".format(device))
   if mode == "train":
