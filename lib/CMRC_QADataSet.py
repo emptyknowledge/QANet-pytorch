@@ -188,4 +188,70 @@ class CMRC_QADataSet(Dataset):
     return self.covert_features4model_input(features, index)
 
 
+  def convert_predict_values(self, features, predict_start, predict_end, probability):
+    """
+    '[SEP]'
+    Args:
+      features:
+      predict_start:
+      predict_end:
+
+    Returns:
+
+    """
+    tokens = features.tokens
+    question = "".join(tokens[:tokens.index("[SEP]")])
+    context = "".join(tokens[tokens.index("[SEP]"):])
+    label_answer = "".join(tokens[features.start_position:features.end_position])
+    predict_answer = "".join(tokens[predict_start:predict_end])
+    return {
+      "context": context,
+      "question": question,
+      "label_answer":label_answer,
+      "predict_answer": predict_answer,
+      "probability": probability
+    }
+
+  def convert_predict_values_with_feature_index(self, feature_index, predict_start, predict_end, probability):
+    """
+
+    Args:
+      features:
+      predict_start:
+      predict_end:
+
+    Returns:
+
+    """
+    feature = self.input_features[feature_index]
+    tokens = feature.tokens
+    question = "".join(tokens[:tokens.index("[SEP]")])
+    context = "".join(tokens[tokens.index("[SEP]"):])
+    label_answer = "".join(tokens[feature.start_position:feature.end_position])
+    predict_answer = "".join(tokens[predict_start:predict_end])
+    return {
+      "context": context,
+      "question": question,
+      "label_answer":label_answer,
+      "predict_answer": predict_answer,
+      "probability": probability
+    }
+
+  def convert_predict_values_with_batch_feature_index(self, feature_indexs, predict_starts, predict_ends, probabilities):
+    """
+
+    Args:
+      features:
+      predict_start:
+      predict_end:
+
+    Returns:
+
+    """
+    res = []
+    for feature_index, predict_start, predict_end, property in zip(feature_indexs, predict_starts, predict_ends, probabilities):
+      res.append(self.convert_predict_values_with_feature_index(feature_index, predict_start, predict_end, property))
+    return res
+
+
 

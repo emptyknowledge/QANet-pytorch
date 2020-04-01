@@ -85,10 +85,12 @@ def train(model, optimizer, scheduler, ema, dataset, start_step, steps_num, epoc
     logger.info(f"Origin Loss: {loss}, step: {step}")
     origin_losses.append(loss.item())
 
-    pre_start, pre_end, _ = find_max_proper_batch(softmax(start_embeddings), softmax(end_embeddings))
+    pre_start, pre_end, probabilities = find_max_proper_batch(softmax(start_embeddings), softmax(end_embeddings))
     extract_result.extend(
-      convert_valid_result_baseline(start_positions, end_positions, pre_start, pre_end, dataset,
-                           index))
+      dataset.convert_predict_values_with_batch_feature_index(index, pre_start, pre_end, probabilities)
+      # convert_valid_result_baseline(index, start_positions, end_positions, pre_start, pre_end, dataset,
+      #                      index)
+    )
 
     loss = torch.clamp(loss, min=config.min_loss, max=config.max_loss)
     logger.info(f"Clamped Loss: {loss}, step: {step}")
