@@ -229,7 +229,7 @@ def train_entry():
   base_lr = 1.0
   warm_up = config.lr_warm_up_num
 
-  model = get_model().to(device)
+  model = get_model(config.model_package, config.model_name, config.model_class_name).to(device)
 
   ema = EMA(config.ema_decay)
   for name, p in model.named_parameters():

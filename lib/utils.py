@@ -8,6 +8,7 @@
 import importlib
 import os
 import torch
+import traceback
 from pytorch_transformers import BertModel
 from pytorch_transformers.convert_tf_checkpoint_to_pytorch import convert_tf_checkpoint_to_pytorch
 

@@ -42,8 +42,8 @@ dataset_dir = {
   "cmcr2018": "./data/cmrc2018_squal_style"
 }
 
-model_name = "ModelBaseLine"
-model_package = "./lib"
+model_class_name = "ModelBaseLine"
+model_package = "lib"
 model_name = "model_baseline"
 
 glove_char_size = 94 #Corpus size for Glove

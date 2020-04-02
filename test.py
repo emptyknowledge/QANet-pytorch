@@ -4,19 +4,16 @@
 #
 # cython: language_level=3
 #
+import lib.config as cf
 import torch
 import torch.nn.functional as f
 from pytorch_transformers import *
-
+from lib.utils import load_class
 def test():
-  a= torch.Tensor(3,3,3)
-  # a = a.squeeze(-1)
-  s = torch.nn.Softmax(-1)
-  print(s(a))
-  print(a)
-  # print(torch.Tensor(3,3,1))
-  # print(torch.Tensor(3,3,1))
-  # print(torch.Tensor(3,3,1))
+  a = torch.Tensor(3,3,2)
+  b = torch.Tensor(3,2,3)
+  # b = b.permute()
+  print(torch.matmul(a,b).shape)
 
 def test_expand():
   a = torch.randn(2,2)

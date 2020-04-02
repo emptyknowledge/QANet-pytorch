@@ -200,7 +200,7 @@ def get_model(package, name, class_name):
   """
   model_class = load_class(package, name, class_name)
   if not config.is_continue:
-    return model_class()
+    return model_class(config.bert_path, config.device, config.dropout)
   else:
     logger.info(f"Continue train, continue_checkpoint: {config.continue_checkpoint}")
     model_path = os.path.join(config.model_dir,
@@ -208,7 +208,7 @@ def get_model(package, name, class_name):
     if not config.is_only_save_params:
       model = torch.load(model_path, map_location=config.device)
     else:
-      model = model_class()
+      model = model_class(config.bert_path, config.device, config.dropout)
       model.load_state_dict(torch.load(model_path))
     return model
   

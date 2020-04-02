@@ -313,12 +313,9 @@ def convert_examples_to_features(examples, tokenizer, max_seq_length,
         input_mask=input_mask,
         segment_ids=segment_ids,
         input_span_mask=input_span_mask,
-        start_position=start_position,
-        end_position=end_position)
+        start_position=[start_position],
+        end_position=[end_position])
 
-      # Run callback
-      # output_fn(feature)
-      feature.to_torch_tensor()
       input_features.append(feature)
 
       unique_id += 1

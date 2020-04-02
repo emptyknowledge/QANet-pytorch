@@ -16,15 +16,16 @@ class Attention(torch.nn.Module):
   """
   Attention
   """
-  def __int__(self, dim, attention_head_num, attention_probs_dropout_prob,
+  def __init__(self, dim, attention_head_num, attention_probs_dropout_prob,
               use_bias=False):
+    super(Attention, self).__init__()
     self.dim = dim
     self.attention_head_num = attention_head_num
     self.use_bias = use_bias
     self.dropout = torch.nn.Dropout(attention_probs_dropout_prob)
     if not self.dim % self.attention_head_num == 0:
       raise Exception(f"The dim({self.dim}) % attention_head_num({self.attention_head_num}) != 0")
-    self.size_per_head = self.dim / self.attention_head_num
+    self.size_per_head = int(self.dim / self.attention_head_num)
     self.query_layer = torch.nn.Linear(self.dim, self.dim, self.use_bias)
     self.key_layer = torch.nn.Linear(self.dim, self.dim, self.use_bias)
     self.value_layer = torch.nn.Linear(self.dim, self.dim, self.use_bias)
@@ -46,11 +47,11 @@ class Attention(torch.nn.Module):
 
   def forward(self, query_tensor, value_tensor, attention_mask=None):
     """"""
-    batch_size, quert_length, _, _ = query_tensor.shape
-    _, value_length, _, _ = value_tensor.shape
+    batch_size, quert_length, _ = query_tensor.shape
+    _, value_length, _ = value_tensor.shape
 
-    query_tensor = reshape_tensor((-1, self.dim))
-    value_tensor = reshape_tensor((-1, self.dim))
+    query_tensor = reshape_tensor(query_tensor, (-1, self.dim))
+    value_tensor = reshape_tensor(value_tensor, (-1, self.dim))
     query_tensor = self.query_layer(query_tensor)
     key_tensor = self.key_layer(value_tensor)
     value_tensor = self.value_layer(value_tensor)
@@ -58,11 +59,11 @@ class Attention(torch.nn.Module):
     query_tensor = self.transpose4score(query_tensor, (batch_size, quert_length,
                                                        self.attention_head_num, self.size_per_head))
     key_tensor  =self.transpose4score(key_tensor, (batch_size, value_length, self.attention_head_num, self.size_per_head))
-    attention_scores =  torch.mm(query_tensor, key_tensor.permute(0, 1, 3, 2))
+    attention_scores =  torch.matmul(query_tensor, key_tensor.permute(0, 1, 3, 2)).long()
     # batch_size, attention_head_num, query_length, value_length
     attention_scores = attention_scores * (1 / math.sqrt(float(self.size_per_head)))
 
-    if attention_mask:
+    if attention_mask is not None:
       attention_mask = torch.unsqueeze(attention_mask, 1)
       attention_mask = torch.unsqueeze(attention_mask, 1)
       attention_mask = attention_mask.expand(batch_size, self.attention_head_num, quert_length, value_length)
@@ -88,7 +89,7 @@ class Attention(torch.nn.Module):
 
 
 
-class ModelBaseline(torch.nn.Module):
+class ModelBaseLine(torch.nn.Module):
   """
   The model of baseline.
   """
@@ -102,11 +103,13 @@ class ModelBaseline(torch.nn.Module):
                attention_use_bias=cf.attention_use_bias,
                training=True):
     """"""
+    super(ModelBaseLine, self).__init__()
     self.training = training
     # embedding
+    self.dim = pos_dim
     self.bert = load_bert(bert_path, device)
     self.dropout = torch.nn.Dropout(dropout)
-    self.layer_normal = torch.nn.LayerNorm(max_postion * pos_dim)
+    self.layer_normal = torch.nn.LayerNorm(pos_dim)
     self.use_position_embedding = use_position_embedding
     self.encoder_hidden_layers = encoder_hidden_layers
     if self.use_position_embedding:
