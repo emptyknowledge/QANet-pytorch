@@ -178,7 +178,7 @@ class ModelBaseLine(torch.nn.Module):
     """"""
     # size: batch_size, seq_length, 2
     embeddings = self.pointer_linear(embeddings)
-    embeddings = mask(embeddings, input_mask, -1)
+    embeddings = mask(embeddings, input_mask, -2)
     start_embeddings = embeddings[:, :, 0].squeeze(dim=-1)
     end_embeddings = embeddings[:, :, 1].squeeze(dim=-1)
     return start_embeddings, end_embeddings
@@ -190,12 +190,10 @@ class ModelBaseLine(torch.nn.Module):
     # return start, end, pro
 
 
-  def forward(self, input_ids, input_mask, segment_ids, return_probability=False):
+  def forward(self, input_ids, input_mask, segment_ids):
     embedding = self.embedding(input_ids, segment_ids)
     embedding = self.encoder(embedding, input_mask)
-    start, end, probability = self.pointer(embedding, input_mask)
-    if not return_probability:
-      return start, end
-    else:
-      return start, end, probability
+    start, end = self.pointer(embedding, input_mask)
+    return start, end
+
     
