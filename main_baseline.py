@@ -78,6 +78,7 @@ def train(model, optimizer, scheduler, ema, dataset, start_step, steps_num, epoc
     input_ids, input_mask, segment_ids, start_positions, end_positions, index = dataset.get(step, config.batch_size)
     input_ids, input_mask, segment_ids = input_ids.to(device), input_mask.to(device), segment_ids.to(device)
     start_positions, end_positions = start_positions.to(device), end_positions.to(device)
+    input_mask = input_mask.float()
     start_embeddings, end_embeddings = model(input_ids, input_mask, segment_ids)
     loss1 = F.nll_loss(start_positions, log_sofmax(start_embeddings), reduction='mean')
     loss2 = F.nll_loss(end_positions, log_sofmax(end_embeddings), reduction='mean')

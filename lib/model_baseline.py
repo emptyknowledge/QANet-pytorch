@@ -59,7 +59,7 @@ class Attention(torch.nn.Module):
     query_tensor = self.transpose4score(query_tensor, (batch_size, quert_length,
                                                        self.attention_head_num, self.size_per_head))
     key_tensor  =self.transpose4score(key_tensor, (batch_size, value_length, self.attention_head_num, self.size_per_head))
-    attention_scores =  torch.matmul(query_tensor, key_tensor.permute(0, 1, 3, 2)).long()
+    attention_scores =  torch.matmul(query_tensor, key_tensor.permute(0, 1, 3, 2))
     # batch_size, attention_head_num, query_length, value_length
     attention_scores = attention_scores * (1 / math.sqrt(float(self.size_per_head)))
 
@@ -78,7 +78,7 @@ class Attention(torch.nn.Module):
     value_tensor = value_tensor.permute(0, 2, 1, 3)
 
     # batch_size, attention_head_num, query_length, size_per_head
-    attention = attention_scores * value_tensor
+    attention = torch.matmul(attention_mask, value_tensor)
 
     attention = attention.permute(0, 2, 1, 3)
     attention = reshape_tensor(attention, (batch_size, quert_length, self.dim))
@@ -126,7 +126,7 @@ class ModelBaseLine(torch.nn.Module):
     self.encoder_line_2 = torch.nn.ModuleList([torch.nn.Linear(encoder_intermediate_dim, self.dim)
                                                for i in range(self.encoder_hidden_layers)])
     
-    self.encoder_normal = torch.nn.ModuleList([torch.nn.LayerNorm(max_postion * pos_dim) for _ in range(self.encoder_hidden_layers)])
+    self.encoder_normal = torch.nn.ModuleList([torch.nn.LayerNorm(pos_dim) for _ in range(self.encoder_hidden_layers)])
 
     # pointer
     self.pointer_linear = torch.nn.Linear(self.dim, 2)
@@ -167,7 +167,7 @@ class ModelBaseLine(torch.nn.Module):
       embeddings += prelayer_output
       # todo: dropout、 normal
       embeddings = functional.dropout(embeddings, self.encoder_dropout_prob, self.training)
-      embeddings = self.encoder_normal[index]
+      embeddings = self.encoder_normal[index](embeddings)
       prelayer_output = embeddings
     return embeddings
 
@@ -177,7 +177,7 @@ class ModelBaseLine(torch.nn.Module):
   def pointer(self, embeddings, input_mask):
     """"""
     # size: batch_size, seq_length, 2
-    embeddings = self.pointer(embeddings)
+    embeddings = self.pointer_linear(embeddings)
     embeddings = mask(embeddings, input_mask, -1)
     start_embeddings = embeddings[:, :, 0].squeeze(dim=-1)
     end_embeddings = embeddings[:, :, 1].squeeze(dim=-1)
