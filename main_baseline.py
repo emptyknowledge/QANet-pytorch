@@ -80,8 +80,8 @@ def train(model, optimizer, scheduler, ema, dataset, start_step, steps_num, epoc
     start_positions, end_positions = start_positions.to(device), end_positions.to(device)
     input_mask = input_mask.float()
     start_embeddings, end_embeddings = model(input_ids, input_mask, segment_ids)
-    loss1 = F.nll_loss(start_positions, log_sofmax(start_embeddings), reduction='mean')
-    loss2 = F.nll_loss(end_positions, log_sofmax(end_embeddings), reduction='mean')
+    loss1 = F.nll_loss(log_sofmax(start_embeddings), start_positions, reduction='mean')
+    loss2 = F.nll_loss(log_sofmax(end_embeddings), end_positions, reduction='mean')
     loss = (loss1 + loss2) / 2
     logger.info(f"Origin Loss: {loss}, step: {step}")
     origin_losses.append(loss.item())
@@ -131,28 +131,39 @@ def valid(model, dataset, epoch=0):
 
 
 def test_model(dataset, losses, model, valid_result, dataset_type="valid"):
-  steps = min(get_steps(dataset_type, config.mode), dataset.data_szie)
+  steps = min(get_steps(dataset_type, config.mode), dataset.features_size)
+  logger.info("start_step test or valid:")
+  softmax = torch.nn.Softmax(dim=-1)
+  log_sofmax = torch.nn.LogSoftmax(dim=-1)
+  # valid_result = []
   with torch.no_grad():
-    for i in tqdm(range(0, steps, dataset.batch_size), total=steps):
-      Cwid, Qwid, answer, ids = dataset[i]
-      Cwid, Qwid = Cwid.to(device), Qwid.to(device)
-      y1, y2 = answer[:, 0].view(-1).to(device), answer[:, 1].view(-1).to(
-        device)
-      p1, p2 = model(Cwid, Qwid)
-      y1, y2 = y1.to(device), y2.to(device)
-      loss1 = F.nll_loss(torch.log(p1), y1, reduction='mean')
-      loss2 = F.nll_loss(torch.log(p2), y2, reduction='mean')
+    for step in tqdm(range(0, steps, config.batch_size), total=steps):
+      input_ids, input_mask, segment_ids, start_positions, end_positions, index = dataset.get(
+        step, config.batch_size)
+      input_ids, input_mask, segment_ids = input_ids.to(device), input_mask.to(
+        device), segment_ids.to(device)
+      start_positions, end_positions = start_positions.to(
+        device), end_positions.to(device)
+      input_mask = input_mask.float()
+      start_embeddings, end_embeddings = model(input_ids, input_mask,
+                                               segment_ids)
+      loss1 = F.nll_loss(log_sofmax(start_embeddings), start_positions,
+                         reduction='mean')
+      loss2 = F.nll_loss(log_sofmax(end_embeddings), end_positions,
+                         reduction='mean')
       loss = (loss1 + loss2) / 2
+      logger.info(f"Origin Loss: {loss}, step: {step}")
       losses.append(loss.item())
-      # TODO: 这里不能直接使用 argmax, 应该找 p1(start) * p2(end) 值最大且 start < end
-      # yp1 = torch.argmax(p1, 1)
-      # yp2 = torch.argmax(p2, 1)
-      # yps = torch.stack([yp1, yp2], dim=1)
-      # ymin, _ = torch.min(yps, 1)
-      # ymax, _ = torch.max(yps, 1)
-      pre_start, pre_end, _ = find_max_proper_batch(p1, p2)
+      pre_start, pre_end, probabilities = find_max_proper_batch(
+        softmax(start_embeddings), softmax(end_embeddings))
       valid_result.extend(
-        convert_valid_result(Cwid, Qwid, y1, y2, pre_start, pre_end, dataset, ids))
+        dataset.convert_predict_values_with_batch_feature_index(index,
+                                                                pre_start,
+                                                                pre_end,
+                                                                probabilities)
+      )
+      # valid_result.extend(
+      #   convert_valid_result(Cwid, Qwid, y1, y2, pre_start, pre_end, dataset, ids))
   loss = np.mean(losses)
   metrics = evaluate_valid_result(valid_result)
   metrics["loss"] = loss

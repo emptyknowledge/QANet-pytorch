@@ -10,10 +10,10 @@ import torch.nn.functional as f
 from pytorch_transformers import *
 from lib.utils import load_class
 def test():
-  a = torch.Tensor([0.1]).float()
-  b = torch.Tensor([1])
+  a = torch.Tensor([1]).float()
+  b = torch.Tensor([2])
   # b = b.permute()
-  print(a * b)
+  print(torch.cat([a,b], dim=0))
 
 def test_expand():
   a = torch.randn(2,2)

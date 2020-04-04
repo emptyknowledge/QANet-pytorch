@@ -23,7 +23,7 @@ def evaluate_valid_result(valid_result):
   f1 = exact_match = total = 0
   for item in valid_result:
     total += 1
-    ground_truths = item.get("labelled_answer")
+    ground_truths = item.get("label_answer")
     prediction = item.get("predict_answer")
     exact_match += metric_max_over_ground_truths(exact_match_score, prediction,
                                                  ground_truths)

@@ -158,8 +158,8 @@ class CMRC_QADataSet(Dataset):
       input_ids.append(torch.unsqueeze(feature.input_ids, 0))
       input_mask.append(torch.unsqueeze(feature.input_mask, 0))
       segment_ids.append(torch.unsqueeze(feature.segment_ids, 0))
-      start_positions.append(torch.unsqueeze(feature.start_position, 0))
-      end_positions.append(torch.unsqueeze(feature.end_position, 0))
+      start_positions.append(feature.start_position)
+      end_positions.append(feature.end_position)
 
     input_ids = torch.cat(input_ids, dim=0).long()
     input_mask = torch.cat(input_mask, dim=0).long()
@@ -234,7 +234,7 @@ class CMRC_QADataSet(Dataset):
       "question": question,
       "label_answer":label_answer,
       "predict_answer": predict_answer,
-      "probability": probability
+      "probability": float(probability)
     }
 
   def convert_predict_values_with_batch_feature_index(self, feature_indexs, predict_starts, predict_ends, probabilities):

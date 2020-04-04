@@ -319,7 +319,7 @@ def convert_examples_to_features(examples, tokenizer, max_seq_length,
       input_features.append(feature)
 
       unique_id += 1
-    return input_features
+  return input_features
 
 
 def _improve_answer_span(doc_tokens, input_start, input_end, tokenizer,
