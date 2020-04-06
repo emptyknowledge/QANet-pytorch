@@ -227,8 +227,8 @@ class CMRC_QADataSet(Dataset):
     tokens = feature.tokens
     question = "".join(tokens[:tokens.index("[SEP]")])
     context = "".join(tokens[tokens.index("[SEP]"):])
-    label_answer = "".join(tokens[feature.start_position:feature.end_position])
-    predict_answer = "".join(tokens[predict_start:predict_end])
+    label_answer = "".join(tokens[feature.start_position:feature.end_position + 1])
+    predict_answer = "".join(tokens[predict_start:predict_end + 1])
     return {
       "context": context,
       "question": question,
