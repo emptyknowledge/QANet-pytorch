@@ -73,39 +73,53 @@ def train(model, optimizer, scheduler, ema, dataset, start_step, steps_num, epoc
   softmax = torch.nn.Softmax(dim=-1)
   log_sofmax = torch.nn.LogSoftmax(dim=-1)
   for step in tqdm(range(start_step, steps_num, config.batch_size), total=steps_num - start_step):
-    optimizer.zero_grad()
-    # input_ids, input_mask, segment_ids, start_positions, end_positions, index
-    input_ids, input_mask, segment_ids, start_positions, end_positions, index = dataset.get(step, config.batch_size)
-    input_ids, input_mask, segment_ids = input_ids.to(device), input_mask.to(device), segment_ids.to(device)
-    start_positions, end_positions = start_positions.to(device), end_positions.to(device)
-    input_mask = input_mask.float()
-    start_embeddings, end_embeddings = model(input_ids, input_mask, segment_ids)
-    loss1 = F.nll_loss(log_sofmax(start_embeddings), start_positions, reduction='mean')
-    loss2 = F.nll_loss(log_sofmax(end_embeddings), end_positions, reduction='mean')
-    loss = (loss1 + loss2) / 2
-    logger.info(f"Origin Loss: {loss}, step: {step}")
-    origin_losses.append(loss.item())
+    try:
+      optimizer.zero_grad()
+      # input_ids, input_mask, segment_ids, start_positions, end_positions, index
+      input_ids, input_mask, segment_ids, start_positions, end_positions, index = dataset.get(
+        step, config.batch_size)
+      # logger.info(f"Start positions: {start_positions}, End positions: {end_positions}")
+      input_ids, input_mask, segment_ids = input_ids.to(device), input_mask.to(
+        device), segment_ids.to(device)
+      start_positions, end_positions = start_positions.to(
+        device), end_positions.to(device)
+      input_mask = input_mask.float()
+      start_embeddings, end_embeddings = model(input_ids, input_mask,
+                                               segment_ids)
+      loss1 = F.nll_loss(log_sofmax(start_embeddings), start_positions,
+                         reduction='mean')
+      loss2 = F.nll_loss(log_sofmax(end_embeddings), end_positions,
+                         reduction='mean')
+      loss = (loss1 + loss2) / 2
+      logger.info(f"Origin Loss: {loss}, step: {step}")
+      origin_losses.append(loss.item())
 
-    pre_start, pre_end, probabilities = find_max_proper_batch(softmax(start_embeddings), softmax(end_embeddings))
-    extract_result.extend(
-      dataset.convert_predict_values_with_batch_feature_index(index, pre_start, pre_end, probabilities)
-      # convert_valid_result_baseline(index, start_positions, end_positions, pre_start, pre_end, dataset,
-      #                      index)
-    )
+      pre_start, pre_end, probabilities = find_max_proper_batch(
+        softmax(start_embeddings), softmax(end_embeddings))
+      extract_result.extend(
+        dataset.convert_predict_values_with_batch_feature_index(index,
+                                                                pre_start,
+                                                                pre_end,
+                                                                probabilities)
+        # convert_valid_result_baseline(index, start_positions, end_positions, pre_start, pre_end, dataset,
+        #                      index)
+      )
 
-    loss = torch.clamp(loss, min=config.min_loss, max=config.max_loss)
-    logger.info(f"Clamped Loss: {loss}, step: {step}")
-    clamped_losses.append(loss.item())
-    loss.backward()
-    optimizer.step()
-    scheduler.step()
-    for name, p in model.named_parameters():
-      if p.requires_grad: ema.update_parameter(name, p)
+      loss = torch.clamp(loss, min=config.min_loss, max=config.max_loss)
+      logger.info(f"Clamped Loss: {loss}, step: {step}")
+      clamped_losses.append(loss.item())
+      loss.backward()
+      optimizer.step()
+      scheduler.step()
+      for name, p in model.named_parameters():
+        if p.requires_grad: ema.update_parameter(name, p)
 
-    if step % config.interval_save == 0:
-      save_model(model, step)
-      record_info(origin_losses, r_type="train", epoch=step)
-      origin_losses = []
+      if step % config.interval_save == 0:
+        save_model(model, step)
+        record_info(origin_losses, r_type="train", epoch=step)
+        origin_losses = []
+    except Exception:
+      logger.error(traceback.format_exc())
   loss_avg = np.mean(clamped_losses)
   metrics = evaluate_valid_result(extract_result)
   metrics["loss"] = loss_avg

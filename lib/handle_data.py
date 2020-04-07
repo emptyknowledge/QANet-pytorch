@@ -350,7 +350,7 @@ def get_answer_position(all_doc_tokens, example, is_training, orig_to_tok_index,
     if example.end_position < len(example.doc_tokens) - 1:
       tok_end_position = orig_to_tok_index[example.end_position + 1] - 1
     else:
-      tok_end_position = - 1
+      tok_end_position = len(all_doc_tokens) - 1
     (tok_start_position, tok_end_position) = _improve_answer_span(
       all_doc_tokens, tok_start_position, tok_end_position, tokenizer,
       example.orig_answer_text)
