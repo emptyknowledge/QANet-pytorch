@@ -179,7 +179,8 @@ def load_model(model_dir, check_point):
   model_path = os.path.join(model_dir, f"model_{check_point}.pt")
   return torch.load(model_path)
 
-def load_bert(model_path, device):
+def load_bert(model_path, device, use_pretrained_bert=True, bert_conf=None,
+              use_segments_embeddings=True, local_bert_class=None):
   """
   加载与训练的 bert.
   Args:
@@ -189,7 +190,10 @@ def load_bert(model_path, device):
   Returns:
 
   """
-  return BertModel.from_pretrained(model_path).to(device)
+  if use_pretrained_bert:
+    return BertModel.from_pretrained(model_path).to(device)
+  else:
+    return local_bert_class(bert_conf, use_segments_embeddings).to(device)
 
 @fn_timer(logger)
 def get_model(package, name, class_name):
@@ -422,3 +426,9 @@ def get_steps(data_set_type, mode="train"):
 
   if data_set_type == "test":
     return config.test_num_steps
+
+
+def get_vocab_size(vocab_file):
+  with open(vocab_file, "r", encoding="utf-8") as f:
+    context = f.read()
+    return len(context.split("\n"))

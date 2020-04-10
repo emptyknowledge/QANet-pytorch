@@ -7,6 +7,7 @@ from lib.utils import to_torch_tensor
 
 import lib.config as cf
 from lib.config import logger
+from my_py_toolkit.decorator.decorator import fn_timer
 
 class SquadExample(object):
   """A single training/test example for simple sequence classification.
@@ -69,7 +70,7 @@ class InputFeatures(object):
     self.start_position = to_torch_tensor(self.start_position)
     self.end_position = to_torch_tensor(self.end_position)
 
-#
+@fn_timer(logger)
 def read_squad_examples(input_file, is_training):
   """Read a SQuAD json file into a list of SquadExample."""
   with open(input_file, "r", encoding="utf-8") as reader:
@@ -151,7 +152,6 @@ def read_squad_examples(input_file, is_training):
 
   return examples
 
-
 def convert_examples_to_features(examples, tokenizer, max_seq_length,
                                  doc_stride, max_query_length, is_training,
                                  output_fn):
@@ -166,7 +166,7 @@ def convert_examples_to_features(examples, tokenizer, max_seq_length,
                                    max_seq_length, tokenizer, unique_id)
   return input_features
 
-
+@fn_timer(logger)
 def convert_single_example2feature(doc_stride, example, example_index, input_features, is_training, max_query_length,
                                    max_seq_length, tokenizer, unique_id):
   """

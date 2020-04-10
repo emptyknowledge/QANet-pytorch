@@ -152,6 +152,6 @@ def test_draw_bar():
   pass
 
 if __name__ == "__main__":
-  view_limited_loss(max_loss=100)
+  view_limited_loss(max_loss=None)
   # test_draw_bar()
 

@@ -9,11 +9,11 @@ import torch
 import torch.nn.functional as f
 from pytorch_transformers import *
 from lib.utils import load_class
+import math
 def test():
-  a = torch.Tensor([1]).float()
-  b = torch.Tensor([2])
-  # b = b.permute()
-  print(torch.cat([a,b], dim=0))
+  weight = torch.nn.Parameter(torch.Tensor(3,3))
+  torch.nn.init.kaiming_uniform_(weight, a=math.sqrt(5))
+  print(weight)
 
 def test_expand():
   a = torch.randn(2,2)

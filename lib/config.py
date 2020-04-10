@@ -8,14 +8,17 @@ dev_file = os.path.join(home, "data", "squad", "dev-v1.1.json")
 test_file = os.path.join(home, "data", "squad", "dev-v1.1.json")
 glove_word_file = os.path.join(home, "data", "glove", "glove.840B.300d.txt")
 
-device = "cpu" # cpu、 cuda
+device = "cuda" # cpu、 cuda
+
+mode = "train" # train, classify, debug
 
 bert_path = "./data/model/bert"
 vocab_file = "./data/model/bert/vocab.txt"
+bert_config = "./data/model/bert/bert_config.json"
+use_segment_embedding = True
+use_pretrained_bert = False
 # bert_path = "./data/model/RoBERTa-wwm-ext-large"
 # vocab_file = "./data/model/RoBERTa-wwm-ext-large/vocab.txt"
-
-mode = "debug" # train, classify
 
 target_dir = "data"
 event_dir = "log"

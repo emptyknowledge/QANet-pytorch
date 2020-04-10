@@ -151,24 +151,27 @@ class CMRC_QADataSet(Dataset):
     """"""
     input_ids = []
     input_mask = []
+    input_span_mask = []
     segment_ids = []
     start_positions = []
     end_positions = []
     for feature in features:
       input_ids.append(torch.unsqueeze(feature.input_ids, 0))
       input_mask.append(torch.unsqueeze(feature.input_mask, 0))
+      input_span_mask.append(torch.unsqueeze(feature.input_span_mask, 0))
       segment_ids.append(torch.unsqueeze(feature.segment_ids, 0))
       start_positions.append(feature.start_position)
       end_positions.append(feature.end_position)
 
     input_ids = torch.cat(input_ids, dim=0).long()
     input_mask = torch.cat(input_mask, dim=0).long()
+    input_span_mask = torch.cat(input_span_mask, dim=0).float()
     segment_ids = torch.cat(segment_ids, dim=0).long()
     start_positions = torch.cat(start_positions, dim=0).long()
     end_positions = torch.cat(end_positions, dim=0).long()
     # index = to_torch_tensor(index)
 
-    return input_ids, input_mask, segment_ids, start_positions, end_positions, index
+    return input_ids, input_mask, input_span_mask, segment_ids, start_positions, end_positions, index
 
 
   def get(self, item, batch_size=1):

@@ -76,16 +76,18 @@ def train(model, optimizer, scheduler, ema, dataset, start_step, steps_num, epoc
     try:
       optimizer.zero_grad()
       # input_ids, input_mask, segment_ids, start_positions, end_positions, index
-      input_ids, input_mask, segment_ids, start_positions, end_positions, index = dataset.get(
+      input_ids, input_mask, input_span_mask, segment_ids, start_positions, end_positions, index = dataset.get(
         step, config.batch_size)
       # logger.info(f"Start positions: {start_positions}, End positions: {end_positions}")
-      input_ids, input_mask, segment_ids = input_ids.to(device), input_mask.to(
-        device), segment_ids.to(device)
+      input_ids, input_mask, input_span_mask, segment_ids = input_ids.to(device), input_mask.to(
+        device), input_span_mask.to(device), segment_ids.to(device)
       start_positions, end_positions = start_positions.to(
         device), end_positions.to(device)
       input_mask = input_mask.float()
       start_embeddings, end_embeddings = model(input_ids, input_mask,
                                                segment_ids)
+      start_embeddings = mask(start_embeddings, input_span_mask, -1)
+      end_embeddings = mask(end_embeddings, input_span_mask, -1)
       loss1 = F.nll_loss(log_sofmax(start_embeddings), start_positions,
                          reduction='mean')
       loss2 = F.nll_loss(log_sofmax(end_embeddings), end_positions,
@@ -152,15 +154,17 @@ def test_model(dataset, losses, model, valid_result, dataset_type="valid"):
   # valid_result = []
   with torch.no_grad():
     for step in tqdm(range(0, steps, config.batch_size), total=steps):
-      input_ids, input_mask, segment_ids, start_positions, end_positions, index = dataset.get(
+      input_ids, input_mask, input_span_mask, segment_ids, start_positions, end_positions, index = dataset.get(
         step, config.batch_size)
-      input_ids, input_mask, segment_ids = input_ids.to(device), input_mask.to(
-        device), segment_ids.to(device)
+      input_ids, input_mask, input_span_mask, segment_ids = input_ids.to(device), input_mask.to(
+        device), input_span_mask.to(device), segment_ids.to(device)
       start_positions, end_positions = start_positions.to(
         device), end_positions.to(device)
       input_mask = input_mask.float()
       start_embeddings, end_embeddings = model(input_ids, input_mask,
                                                segment_ids)
+      start_embeddings = mask(start_embeddings, input_span_mask, -1)
+      end_embeddings = mask(end_embeddings, input_span_mask, -1)
       loss1 = F.nll_loss(log_sofmax(start_embeddings), start_positions,
                          reduction='mean')
       loss2 = F.nll_loss(log_sofmax(end_embeddings), end_positions,
