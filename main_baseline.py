@@ -113,8 +113,9 @@ def train(model, optimizer, scheduler, ema, dataset, start_step, steps_num, epoc
       loss.backward()
       optimizer.step()
       scheduler.step()
-      for name, p in model.named_parameters():
-        if p.requires_grad: ema.update_parameter(name, p)
+      if config.use_ema:
+        for name, p in model.named_parameters():
+          if p.requires_grad: ema.update_parameter(name, p)
 
       if step % config.interval_save == 0:
         save_model(model, step)
@@ -257,7 +258,8 @@ def train_entry():
 
   lr = config.learning_rate
   base_lr = 1.0
-  warm_up = config.lr_warm_up_num
+  num_train_steps = int(train_dataset.features_size/ config.batch_size * config.epochs)
+  warm_up = int(num_train_steps * config.warmup_proportion)
 
   model = get_model(config.model_package, config.model_name, config.model_class_name).to(device)
 

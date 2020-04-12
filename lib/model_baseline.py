@@ -5,6 +5,9 @@
 # cython: language_level=3
 #
 
+import copy
+import json
+import six
 import math
 import torch
 from lib.handler import load_bert, get_vocab_size
@@ -13,6 +16,80 @@ from lib.utils import reshape_tensor, mask, find_max_proper_batch
 from torch.nn import functional
 from my_py_toolkit.file.file_toolkit import readjson
 
+
+
+class BertConfig(object):
+  """Configuration for `BertModel`."""
+
+  def __init__(self,
+               vocab_size,
+               hidden_size=768,
+               num_hidden_layers=12,
+               num_attention_heads=12,
+               intermediate_size=3072,
+               hidden_act="gelu",
+               hidden_dropout_prob=0.1,
+               attention_probs_dropout_prob=0.1,
+               max_position_embeddings=512,
+               type_vocab_size=16,
+               initializer_range=0.02):
+    """Constructs BertConfig.
+
+    Args:
+      vocab_size: Vocabulary size of `inputs_ids` in `BertModel`.
+      hidden_size: Size of the encoder layers and the pooler layer.
+      num_hidden_layers: Number of hidden layers in the Transformer encoder.
+      num_attention_heads: Number of attention heads for each attention layer in
+        the Transformer encoder.
+      intermediate_size: The size of the "intermediate" (i.e., feed-forward)
+        layer in the Transformer encoder.
+      hidden_act: The non-linear activation function (function or string) in the
+        encoder and pooler.
+      hidden_dropout_prob: The dropout probability for all fully connected
+        layers in the embeddings, encoder, and pooler.
+      attention_probs_dropout_prob: The dropout ratio for the attention
+        probabilities.
+      max_position_embeddings: The maximum sequence length that this model might
+        ever be used with. Typically set this to something large just in case
+        (e.g., 512 or 1024 or 2048).
+      type_vocab_size: The vocabulary size of the `token_type_ids` passed into
+        `BertModel`.
+      initializer_range: The stdev of the truncated_normal_initializer for
+        initializing all weight matrices.
+    """
+    self.vocab_size = vocab_size
+    self.hidden_size = hidden_size
+    self.num_hidden_layers = num_hidden_layers
+    self.num_attention_heads = num_attention_heads
+    self.hidden_act = hidden_act
+    self.intermediate_size = intermediate_size
+    self.hidden_dropout_prob = hidden_dropout_prob
+    self.attention_probs_dropout_prob = attention_probs_dropout_prob
+    self.max_position_embeddings = max_position_embeddings
+    self.type_vocab_size = type_vocab_size
+    self.initializer_range = initializer_range
+
+  @classmethod
+  def from_dict(cls, json_object):
+    """Constructs a `BertConfig` from a Python dictionary of parameters."""
+    config = BertConfig(vocab_size=None)
+    for (key, value) in six.iteritems(json_object):
+      config.__dict__[key] = value
+    return config
+
+  @classmethod
+  def from_json_file(cls, json_file):
+    """Constructs a `BertConfig` from a json file of parameters."""
+    return cls.from_dict(readjson(json_file))
+
+  def to_dict(self):
+    """Serializes this instance to a Python dictionary."""
+    output = copy.deepcopy(self.__dict__)
+    return output
+
+  def to_json_string(self):
+    """Serializes this instance to a JSON string."""
+    return json.dumps(self.to_dict(), indent=2, sort_keys=True) + "\n"
 
 class LocalLinear(torch.nn.Module):
     r"""Applies a linear transformation to the incoming data: :math:`y = xA^T + b`
@@ -92,7 +169,7 @@ class Attention(torch.nn.Module):
     self.query_layer = torch.nn.Linear(self.dim, self.dim, self.use_bias)
     self.key_layer = torch.nn.Linear(self.dim, self.dim, self.use_bias)
     self.value_layer = torch.nn.Linear(self.dim, self.dim, self.use_bias)
-    self.softmax = torch.nn.Softmax(dim=3)
+    self.softmax = torch.nn.Softmax(dim=-1)
 
   def transpose4score(self, tensor, shape):
     """
@@ -215,9 +292,11 @@ class ModelBaseLine(torch.nn.Module):
     if self.use_position_embedding:
       self.init_positon_embedding(max_postion, pos_dim)
 
-    self.attention_layer = Attention(pos_dim, attention_head_num, attention_probs_dropout_prob, attention_use_bias)
-
     # encoder
+    self.attention_layer = torch.nn.ModuleList([
+      Attention(pos_dim, attention_head_num, attention_probs_dropout_prob, attention_use_bias)
+      for i in range(self.encoder_hidden_layers)
+    ])
     self.encoder_dropout_prob = encoder_dropout_prob
     self.encoder_linear_1 = torch.nn.ModuleList([torch.nn.Linear(self.dim, self.dim)
                                                  for i in range(self.encoder_hidden_layers)])
@@ -235,7 +314,7 @@ class ModelBaseLine(torch.nn.Module):
 
   def init_positon_embedding(self, max_postion, pos_dim):
     posi_embedding = torch.Tensor(max_postion, pos_dim)
-    posi_embedding = torch.nn.init.kaiming_normal(posi_embedding, a=0, mode='fan_in', nonlinearity='leaky_relu')
+    posi_embedding = torch.nn.init.kaiming_normal(posi_embedding, a=math.sqrt(5), mode='fan_in', nonlinearity='leaky_relu')
     self.position_embedding = torch.nn.Parameter(posi_embedding)
 
 
@@ -252,22 +331,22 @@ class ModelBaseLine(torch.nn.Module):
     embeddings, _ = self.bert(input_ids, segment_ids)
     if self.use_position_embedding:
       embeddings = embeddings + self.position_embedding
-    embeddings = self.dropout(embeddings)
     embeddings = self.layer_normal(embeddings)
+    embeddings = self.dropout(embeddings)
     return embeddings
 
   def encoder(self, embeddings, input_mask):
     prelayer_output = embeddings
     for index in range(self.encoder_hidden_layers):
       # batchsize, sequence_length, posi_duim
-      embeddings = self.attention_layer(embeddings, embeddings, input_mask)
+      embeddings = self.attention_layer[index](embeddings, embeddings, input_mask)
       embeddings = self.encoder_linear_1[index](embeddings)
       embeddings = self.encoder_line_intermidia[index](embeddings)
       embeddings = self.encoder_line_2[index](embeddings)
       embeddings += prelayer_output
       # todo: dropout、 normal
-      embeddings = functional.dropout(embeddings, self.encoder_dropout_prob, self.training)
       embeddings = self.encoder_normal[index](embeddings)
+      embeddings = functional.dropout(embeddings, self.encoder_dropout_prob, self.training)
       prelayer_output = embeddings
     return embeddings
 

@@ -152,6 +152,7 @@ def read_squad_examples(input_file, is_training):
 
   return examples
 
+@fn_timer(logger)
 def convert_examples_to_features(examples, tokenizer, max_seq_length,
                                  doc_stride, max_query_length, is_training,
                                  output_fn):
@@ -166,7 +167,6 @@ def convert_examples_to_features(examples, tokenizer, max_seq_length,
                                    max_seq_length, tokenizer, unique_id)
   return input_features
 
-@fn_timer(logger)
 def convert_single_example2feature(doc_stride, example, example_index, input_features, is_training, max_query_length,
                                    max_seq_length, tokenizer, unique_id):
   """
