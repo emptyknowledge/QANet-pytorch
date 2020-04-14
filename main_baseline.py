@@ -111,6 +111,7 @@ def train(model, optimizer, scheduler, ema, dataset, start_step, steps_num, epoc
       logger.info(f"Clamped Loss: {loss}, step: {step}")
       clamped_losses.append(loss.item())
       loss.backward()
+      gradient = get_gradient(model)
       optimizer.step()
       scheduler.step()
       if config.use_ema:

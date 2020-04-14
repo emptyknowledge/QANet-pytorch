@@ -199,6 +199,7 @@ def get_gradient(model):
     add_value4dict(gradients, *keys)
   return gradients
 
+
 if __name__ == "__main__":
   test()
 

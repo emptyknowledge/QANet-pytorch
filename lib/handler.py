@@ -432,3 +432,26 @@ def get_vocab_size(vocab_file):
   with open(vocab_file, "r", encoding="utf-8") as f:
     context = f.read()
     return len(context.split("\n"))
+
+def is_leaf(value):
+  keys = "".join([k for k,_ in value.items()])
+  if "." in keys:
+    return False
+  else:
+    return True
+
+def process_leaf(value):
+  pass
+
+def handler_gradient(gradient):
+  result ={}
+  is_leaf = True
+  for k,v in gradient.items():
+    if isinstance(list(v.values()), dict):
+      v = handler_gradient(v)
+
+    if is_leaf(v):
+      v = process_leaf(v)
+
+
+

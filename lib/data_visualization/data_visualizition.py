@@ -156,6 +156,13 @@ def test_draw_bar():
   draw_bar(data, labels, x_label, y_label, title, width)
   pass
 
+def visual_tensorboard(log_dir, tag, data, epoch, step):
+  from tensorboardX import SummaryWriter
+  for name, value in data.items():
+    writer = SummaryWriter(f"{log_dir}/{name}")
+    writer.add_histogram(f"{epoch}_{tag}", value, step)
+    writer.close()
+
 if __name__ == "__main__":
   view_limited_loss(max_loss=None)
   # test_draw_bar()
