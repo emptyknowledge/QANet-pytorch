@@ -10,7 +10,7 @@ glove_word_file = os.path.join(home, "data", "glove", "glove.840B.300d.txt")
 
 device = "cuda" # cpu、 cuda
 
-mode = "train" # train, classify, debug
+mode = "debug" # train, classify, debug
 
 bert_path = "./data/model/bert"
 vocab_file = "./data/model/bert/vocab.txt"

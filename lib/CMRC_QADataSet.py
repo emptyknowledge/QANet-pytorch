@@ -127,10 +127,13 @@ class CMRC_QADataSet_Old(Dataset):
 
 
 class CMRC_QADataSet(Dataset):
-  def __init__(self, data_file, is_train):
+  def __init__(self, data_file, is_train, mode="train"):
     self.tokenizer = tokenizer = FullTokenizer(
       vocab_file=cf.vocab_file, do_lower_case=cf.do_lower_case)
     self.examples = read_squad_examples(data_file, is_train)
+    self.mode = mode
+    if self.mode == "debug":
+      self.examples = self.examples[:10]
     self.input_features = convert_examples_to_features(
         examples=self.examples,
         tokenizer=tokenizer,

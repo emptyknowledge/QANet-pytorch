@@ -231,7 +231,7 @@ def save_model(model, steps=0):
     # torch.save(data_set.trainable_embedding, config.embedding_trainable_model)
 
 @fn_timer(logger)
-def get_dataset(data_type="train"):
+def get_dataset(data_type="train", mode="train"):
   """
 
   Args:
@@ -244,11 +244,11 @@ def get_dataset(data_type="train"):
   data_path = [path for path in get_file_paths(data_dir) if data_type in get_file_name(path)][0]
   if "cmcr" in config.dataset_name:
     dataset = CMRC_QADataSet(data_path,
-                             config.is_train)
+                             config.is_train, mode)
     return dataset
   else:
     dataset = QADataSet(data_path,
-                        config.batch_size)
+                        config.batch_size, mode)
     return dataset
 
 def record_info(losses, f1=[], em=[], valid_result={}, epoch=0,

@@ -252,9 +252,9 @@ def train_entry():
 
   logger.info("Building model...")
 
-  train_dataset = get_dataset("train")
-  dev_dataset = get_dataset("dev")
-  trial_dataset = get_dataset("trial")
+  train_dataset = get_dataset("train", config.mode)
+  dev_dataset = get_dataset("dev", config.mode)
+  trial_dataset = get_dataset("trial", config.mode)
 
   lr = config.learning_rate
   base_lr = 1.0
@@ -269,7 +269,7 @@ def train_entry():
   params = filter(lambda param: param.requires_grad, model.parameters())
   optimizer = optim.Adam(lr=base_lr, betas=(config.beta1, config.beta2),
                          eps=1e-7, weight_decay=3e-7, params=params)
-  cr = lr / log2(warm_up)
+  cr = lr / log2(warm_up) if config.mode=="train" else lr
   scheduler = optim.lr_scheduler.LambdaLR(optimizer,
                                           lr_lambda=lambda ee: cr * log2(
                                             ee + 1) if ee < warm_up else lr)

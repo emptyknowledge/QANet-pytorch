@@ -11,6 +11,7 @@ import torch
 import traceback
 from pytorch_transformers import BertModel
 from pytorch_transformers.convert_tf_checkpoint_to_pytorch import convert_tf_checkpoint_to_pytorch
+from my_py_toolkit.basic_data_type.basic_data_type_toolkit import add_value4dict
 
 def write2file(content, file_path, is_continue=True):
   """"""
@@ -180,6 +181,23 @@ def test():
   a = [random.randrange(-1, 1) for i in range(10)]
   print(a)
   print(get_first_non_negative_index(a, True))
+
+def get_gradient(model):
+  """
+
+  Args:
+    model:
+
+  Returns:
+
+  """
+  gradients = {}
+  for name, parameter in model.named_parameters():
+    keys = name.split(".")
+    grad = parameter.grad
+    keys.append(grad)
+    add_value4dict(gradients, *keys)
+  return gradients
 
 if __name__ == "__main__":
   test()

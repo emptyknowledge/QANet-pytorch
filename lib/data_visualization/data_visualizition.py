@@ -59,19 +59,24 @@ def view_limited_loss(min_loss=None, max_loss=None):
   with open(data_path, "r", encoding="utf-8") as f:
     for line in f.readlines():
     # line = f.readline()
-      line = re.sub("[\\s]*", "", line)
-      if not line:
-        continue
-      data = [float(v) for v in line.split(",")]
-      if min_loss is not None:
-        data = [v for v in data if v > min_loss]
+      try:
+        line = re.sub("[\\s]*", "", line)
+        if not line:
+          continue
+        data = [float(v) for v in line.split(",")]
+        if min_loss is not None:
+          data = [v for v in data if v > min_loss]
 
-      if max_loss is not None:
-        data = [v for v in data if v < max_loss]
+        if max_loss is not None:
+          data = [v for v in data if v < max_loss]
+      except Exception:
+        print()
 
       losses += data
   view_point_data(losses, is_save=True, save_path="./test.png", is_show=True)
 
+def clean_loss(loss):
+  return
 
 def draw_bar(data, labels, x_label, y_label, title, width=1, interval=1,
              save_path="./test_bar.png"):
