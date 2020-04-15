@@ -8,6 +8,7 @@
 import importlib
 import os
 import torch
+import math
 import traceback
 from pytorch_transformers import BertModel
 from pytorch_transformers.convert_tf_checkpoint_to_pytorch import convert_tf_checkpoint_to_pytorch
@@ -199,6 +200,26 @@ def get_gradient(model):
     add_value4dict(gradients, *keys)
   return gradients
 
+def get_parameter_values(model):
+  """
+
+  Args:
+    model:
+
+  Returns:
+
+  """
+  parameter_values = {}
+  for name, parameter in model.named_parameters():
+    keys = name.split(".")
+    data = parameter.data
+    keys.append(data)
+    add_value4dict(parameter_values, *keys)
+  return parameter_values
+
+def gelu(tensor):
+  cdf = 0.5 *(1.0 + torch.erf(tensor/math.sqrt(2.0)))
+  return tensor * cdf
 
 if __name__ == "__main__":
   test()

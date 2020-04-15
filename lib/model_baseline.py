@@ -12,7 +12,7 @@ import math
 import torch
 from lib.handler import load_bert, get_vocab_size
 import lib.config as cf
-from lib.utils import reshape_tensor, mask, find_max_proper_batch
+from lib.utils import reshape_tensor, mask, find_max_proper_batch, gelu
 from torch.nn import functional
 from my_py_toolkit.file.file_toolkit import readjson
 
@@ -342,10 +342,12 @@ class ModelBaseLine(torch.nn.Module):
       embeddings = self.attention_layer[index](embeddings, embeddings, input_mask)
       embeddings = self.encoder_linear_1[index](embeddings)
       embeddings = self.encoder_line_intermidia[index](embeddings)
+      embeddings = gelu(embeddings)
       embeddings = self.encoder_line_2[index](embeddings)
       embeddings += prelayer_output
       # todo: dropout、 normal
       embeddings = self.encoder_normal[index](embeddings)
+      # embeddings = functional.leaky_relu(embeddings)
       embeddings = functional.dropout(embeddings, self.encoder_dropout_prob, self.training)
       prelayer_output = embeddings
     return embeddings

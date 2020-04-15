@@ -24,6 +24,7 @@ from lib.QADataSet import QADataSet
 from lib.handler import *
 from lib.utils import *
 from lib.handler import *
+from lib.data_visualization.data_visualizition import visual_tensorboard
 from my_py_toolkit.file.file_toolkit import writejson
 from my_py_toolkit.decorator.decorator import fn_timer
 
@@ -112,6 +113,12 @@ def train(model, optimizer, scheduler, ema, dataset, start_step, steps_num, epoc
       clamped_losses.append(loss.item())
       loss.backward()
       gradient = get_gradient(model)
+      parameter_values = get_parameter_values(model)
+      gradient = transfer_multi_layer_dict(gradient)
+      parameter_values = transfer_multi_layer_dict(parameter_values)
+      visual_tensorboard(config.visual_gradient_dir, "gradient", gradient, epoch, step)
+      visual_tensorboard(config.visual_parameter_dir, "parameter_values", parameter_values, epoch, step)
+      visual_tensorboard(config.visual_loss_dir, "loss", {"loss": origin_losses}, epoch, step)
       optimizer.step()
       scheduler.step()
       if config.use_ema:

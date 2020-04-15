@@ -10,7 +10,7 @@ glove_word_file = os.path.join(home, "data", "glove", "glove.840B.300d.txt")
 
 device = "cuda" # cpu、 cuda
 
-mode = "debug" # train, classify, debug
+mode = "train" # train, classify, debug
 
 bert_path = "./data/model/bert"
 vocab_file = "./data/model/bert/vocab.txt"
@@ -129,3 +129,7 @@ logger = get_logger(log_path)
 
 # data visualization
 font_file = "./data/font/fangsong.ttf"
+visual_data_dir = "./runs"
+visual_gradient_dir = "./gradients"
+visual_parameter_dir = "./parameters"
+visual_loss_dir = "./losses"

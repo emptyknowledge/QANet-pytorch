@@ -441,17 +441,65 @@ def is_leaf(value):
     return True
 
 def process_leaf(value):
-  pass
+  value = [v for k,v in value.items()]
+  value = [reshape_tensor(v,[-1]) for v in value if v is not None]
+  if value:
+    value = torch.cat(value, dim=0)
+  return value
 
 def handler_gradient(gradient):
   result ={}
-  is_leaf = True
+  leaf = True
   for k,v in gradient.items():
-    if isinstance(list(v.values()), dict):
-      v = handler_gradient(v)
+    if not isinstance(v, dict):
+      result[k] = v
+      continue
 
-    if is_leaf(v):
+    if isinstance(list(v.values())[0], dict):
+      v = handler_gradient(v)
+      leaf = False
+
+    if leaf and is_leaf(v):
       v = process_leaf(v)
+      result[k] = v
+    else:
+      for sub_key, sub_v in v.items():
+        result[f"{k}.{sub_key}"] = sub_v
+
+  return result
+
+def is_last_layer(value):
+  if not isinstance(value, dict):
+    return True
+  for k,v in value.items():
+    if isinstance(v, dict):
+      return False
+  return True
+
+def transfer_multi_layer_dict(dict_value):
+  """
+  将多层 dict 转换为 1 层 dict.
+  Args:
+    dict_value:
+
+  Returns:
+
+  """
+  result = {}
+  for key, value in dict_value.items():
+    if not isinstance(value, dict):
+      result[key] = value
+      continue
+
+
+    if not is_last_layer(value):
+      value = transfer_multi_layer_dict(value)
+
+    for sub_key, sub_value in value.items():
+      result[f"{key}.{sub_key}"] = sub_value
+
+  return result
+
 
 
 
