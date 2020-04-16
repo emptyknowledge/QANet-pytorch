@@ -204,8 +204,11 @@ class Attention(torch.nn.Module):
     attention_scores = attention_scores * (1 / math.sqrt(float(self.size_per_head)))
 
     if attention_mask is not None:
+      # batch_size, 1, sqe_len
       attention_mask = torch.unsqueeze(attention_mask, 1)
-      attention_mask = torch.unsqueeze(attention_mask, 1)
+      # batch_size, 1, sqe_len, 1
+      attention_mask = torch.unsqueeze(attention_mask, -1)
+      # batch_size, attention_head_num, squ_len
       attention_mask = attention_mask.expand(batch_size, self.attention_head_num, quert_length, value_length)
       attention_scores = attention_scores * attention_mask
 
@@ -242,8 +245,10 @@ class LocalBert(torch.nn.Module):
 
 
   def init_para(self):
-    self.word_embeddings = torch.nn.init.kaiming_normal(self.word_embeddings, a=math.sqrt(5), mode='fan_in', nonlinearity='leaky_relu')
-    self.segments_embedding = torch.nn.init.kaiming_normal(self.segments_embedding, a=math.sqrt(5), mode='fan_in', nonlinearity='leaky_relu')
+    self.word_embeddings = torch.nn.init.kaiming_normal(self.word_embeddings, a=math.sqrt(5))
+    self.segments_embedding = torch.nn.init.kaiming_normal(self.segments_embedding, a=math.sqrt(5))
+    # self.word_embeddings = torch.nn.init.uniform_(self.word_embeddings, a=-0.02, b=0.02)
+    # self.segments_embedding = torch.nn.init.uniform_(self.segments_embedding, a=-0.02, b=0.02)
 
 
   def forward(self, input_ids, segment_ids):

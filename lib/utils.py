@@ -178,10 +178,12 @@ def load_class(package, name, class_name):
 
 
 def test():
-  import random
-  a = [random.randrange(-1, 1) for i in range(10)]
+  a = torch.Tensor(3,3,3)
+  b = torch.Tensor([1,1,0])
   print(a)
-  print(get_first_non_negative_index(a, True))
+  print(mask(a, b , -1))
+  print(mask(a, b , -2))
+  print(mask(a, b , -3))
 
 def get_gradient(model):
   """

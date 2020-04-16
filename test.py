@@ -12,7 +12,7 @@ from lib.utils import load_class
 import math
 def test():
   weight = torch.nn.Parameter(torch.Tensor(3,3))
-  torch.nn.init.kaiming_uniform_(weight, a=math.sqrt(5))
+  torch.nn.init.uniform_(weight, a=-0.02, b=0.02)
   print(weight)
 
 def test_expand():
