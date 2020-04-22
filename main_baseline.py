@@ -118,7 +118,7 @@ def train(model, optimizer, scheduler, ema, dataset, start_step, steps_num, epoc
       parameter_values = transfer_multi_layer_dict(parameter_values)
       visual_tensorboard(config.visual_gradient_dir, "gradient", gradient, epoch, step)
       visual_tensorboard(config.visual_parameter_dir, "parameter_values", parameter_values, epoch, step)
-      visual_tensorboard(config.visual_loss_dir, "loss", {"loss": origin_losses}, epoch, step)
+      visual_tensorboard(config.visual_loss_dir, "loss", {"loss": [loss.item()]}, epoch, step)
       optimizer.step()
       scheduler.step()
       if config.use_ema:

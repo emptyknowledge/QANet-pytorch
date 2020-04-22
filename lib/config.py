@@ -70,7 +70,7 @@ doc_stride = 128
 is_train = True
 is_continue = False
 model_dir = "./model"
-continue_checkpoint = 11100 # 500 的时候 loss 到达最低处 2.0+
+continue_checkpoint = 6800 # 500 的时候 loss 到达最低处 2.0+
 capacity = 15000 #Batch size of dataset shuffle
 num_threads = 4 #Number of threads in input pipeline
 is_bucket = False #build bucket batch iterator or not
@@ -104,7 +104,7 @@ min_loss = 0 # The scope of loss.可能出现 loss 非常大的情况
 max_loss = None
 max_postion = 512
 attention_probs_dropout_prob = 0.1
-attention_use_bias = True
+attention_use_bias = False
 encoder_hidden_layers = 12
 encoder_intermediate_dim = 3072
 encoder_dropout_prob = 0.1
@@ -120,16 +120,16 @@ fasttext = False #Whether to use fasttext
 
 is_only_save_params = True
 
-log_path = "./log/log.txt"
-losses_path = "./log/losses_log.txt"
-valid_result_dir = "./log/valid_result"
-less_loss_path = "./data/less_loss.json"
-high_loss_path = "./data/high_loss.json"
+log_path = "../log/log.txt"
+losses_path = "../log/losses_log.txt"
+valid_result_dir = "../log/valid_result"
+less_loss_path = "../data/less_loss.json"
+high_loss_path = "../data/high_loss.json"
 logger = get_logger(log_path)
 
 # data visualization
 font_file = "./data/font/fangsong.ttf"
 visual_data_dir = "./runs"
-visual_gradient_dir = "./gradients"
-visual_parameter_dir = "./parameters"
-visual_loss_dir = "./losses"
+visual_gradient_dir = "../log/gradients"
+visual_parameter_dir = "../log/parameters"
+visual_loss_dir = "../log/losses"

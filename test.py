@@ -8,12 +8,10 @@ import lib.config as cf
 import torch
 import torch.nn.functional as f
 from pytorch_transformers import *
-from lib.utils import load_class
+from lib.utils import load_class, gelu
 import math
 def test():
-  weight = torch.nn.Parameter(torch.Tensor(3,3))
-  torch.nn.init.uniform_(weight, a=-0.02, b=0.02)
-  print(weight)
+  print(torch.randn(3,3))
 
 def test_expand():
   a = torch.randn(2,2)
@@ -112,7 +110,96 @@ def test_mask():
   print(a.shape)
   print(torch.mul(a, mask))
 
+def test_init_normal():
+  def linear(x,w,b): return x @ w + b
+  def relu(x): return x.clamp_min(0.)
 
+  x_train = torch.randn(784)
+  # x_train = torch.nn.init.normal(x_train)
+  print(x_train.mean(), x_train.std())
+  nh = 50
+  w1 = torch.randn(784, nh)
+  b1 = torch.zeros(nh)
+  z1 = linear(x_train, w1, b1)
+  print("norma init=====================>")
+  print(z1.mean(), z1.std())
+
+def test_init_xavier():
+
+  print("Xavier init ====================>")
+  def linear(x,w,b): return x @ w + b
+  def relu(x): return x.clamp_min(0.)
+
+  x_train = torch.randn(784)
+  # x_train = torch.nn.init.normal_(x_train)
+  print(x_train.mean(), x_train.std())
+  nh = 50
+  w1 = torch.randn(784, nh) * math.sqrt(1/768)
+  b1 = torch.zeros(nh)
+  z1 = linear(x_train, w1, b1)
+  scale = 1/2
+  # print(0, z1.mean(), z1.std())
+  z2 = relu(z1)
+  print(0, z2.mean(), z2.std())
+  # z2 = gelu(z1)
+  # print(1, z2.mean(), z2.std())
+  # for i in range(20):
+  #   new_chan = max(int(nh * scale), 1)
+  #   w2 = torch.randn(nh, new_chan) * math.sqrt(1/nh)
+  #   b2 = torch.zeros(new_chan)
+  #   z2 = linear(z1, w2, b2)
+  #   nh = new_chan
+  #   z1 = z2
+  #   print(i+1, z2.mean(), z2.std())
+
+
+def test_init_kaiming():
+  print("kaiming init ==============================>")
+  def linear(x,w,b): return x @ w + b
+  def relu(x): return x.clamp_min(0.)
+
+  x_train = torch.randn(784)
+  # x_train = torch.nn.init.normal_(x_train)
+  print(x_train.mean(), x_train.std())
+  nh = 50
+  w1 = torch.randn(784, nh) * math.sqrt(2 / 768)
+  b1 = torch.zeros(nh)
+  z1 = linear(x_train, w1, b1)
+  z2 = relu(z1)
+  print(z2.mean(), z2.std())
+  z2 = gelu(z1)
+  print(z2.mean(), z2.std())
+
+def test_torch_buildin():
+  print("torch init ===========>")
+  import torch.nn.init as init
+  def linear(x,w,b): return x @ w + b
+  def relu(x): return x.clamp_min(0.)
+  t_linear = torch.nn.Linear(784, 50)
+
+  nh = 50
+  x_train = torch.randn(784)
+  W1 = torch.zeros(784, nh)
+  b1 = torch.zeros(nh)
+  W2 = torch.zeros(784, nh)
+  b2 = torch.zeros(1)
+
+  init.kaiming_normal_(W1, mode='fan_out', nonlinearity='relu')
+  init.kaiming_normal_(W2, mode='fan_out', nonlinearity='relu')
+  # init.kaiming_normal_(W2, mode='fan_out')
+  z1 = t_linear(x_train)
+  z2 = linear(x_train, W1, b1)
+  z3 = linear(x_train, W2, b1)
+  # a1 = torch.relu(z1)
+  a1 = relu(z1)
+  a2 = relu(z2)
+  a3 = relu(z3)
+  print("a1 layer1: ", a1.mean(), a1.std())
+  print("a2 layer1: ", a2.mean(), a2.std())
+  print("a3 layer1: ", a3.mean(), a3.std())
 
 if __name__ == "__main__":
-  test()
+  # test_init_normal()
+  test_init_xavier()
+  test_init_kaiming()
+  test_torch_buildin()

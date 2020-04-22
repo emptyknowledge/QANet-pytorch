@@ -126,7 +126,7 @@ class LocalLinear(torch.nn.Module):
     """
     __constants__ = ['bias', 'in_features', 'out_features']
 
-    def __init__(self, in_features, out_features, bias=True):
+    def __init__(self, in_features, out_features, bias=False):
         super(LocalLinear, self).__init__()
         self.in_features = in_features
         self.out_features = out_features
@@ -138,8 +138,9 @@ class LocalLinear(torch.nn.Module):
         self.reset_parameters()
 
     def reset_parameters(self):
-        torch.nn.init.kaiming_uniform_(self.weight, a=math.sqrt(5))
+        torch.nn.init.kaiming_normal_(self.weight, mode='fan_out')
         if self.bias is not None:
+          # torch.nn.init.kaiming_normal_(self.bias, mode='fan_out')
             fan_in, _ = torch.nn.init._calculate_fan_in_and_fan_out(self.weight)
             bound = 1 / math.sqrt(fan_in)
             torch.nn.init.uniform_(self.bias, -bound, bound)
@@ -166,9 +167,9 @@ class Attention(torch.nn.Module):
     if not self.dim % self.attention_head_num == 0:
       raise Exception(f"The dim({self.dim}) % attention_head_num({self.attention_head_num}) != 0")
     self.size_per_head = int(self.dim / self.attention_head_num)
-    self.query_layer = torch.nn.Linear(self.dim, self.dim, self.use_bias)
-    self.key_layer = torch.nn.Linear(self.dim, self.dim, self.use_bias)
-    self.value_layer = torch.nn.Linear(self.dim, self.dim, self.use_bias)
+    self.query_layer = LocalLinear(self.dim, self.dim, self.use_bias)
+    self.key_layer = LocalLinear(self.dim, self.dim, self.use_bias)
+    self.value_layer = LocalLinear(self.dim, self.dim, self.use_bias)
     self.softmax = torch.nn.Softmax(dim=-1)
 
   def transpose4score(self, tensor, shape):
@@ -245,8 +246,10 @@ class LocalBert(torch.nn.Module):
 
 
   def init_para(self):
-    self.word_embeddings = torch.nn.init.kaiming_normal(self.word_embeddings, a=math.sqrt(5))
-    self.segments_embedding = torch.nn.init.kaiming_normal(self.segments_embedding, a=math.sqrt(5))
+    torch.nn.init.kaiming_normal_(self.word_embeddings, mode='fan_out')
+    torch.nn.init.kaiming_normal_(self.segments_embedding, mode='fan_out')
+    # self.word_embeddings = torch.nn.init.kaiming_normal(self.word_embeddings, mode='fan_out', nonlinearity)
+    # self.segments_embedding = torch.nn.init.kaiming_normal(self.segments_embedding, a=math.sqrt(5))
     # self.word_embeddings = torch.nn.init.uniform_(self.word_embeddings, a=-0.02, b=0.02)
     # self.segments_embedding = torch.nn.init.uniform_(self.segments_embedding, a=-0.02, b=0.02)
 
@@ -303,24 +306,25 @@ class ModelBaseLine(torch.nn.Module):
       for i in range(self.encoder_hidden_layers)
     ])
     self.encoder_dropout_prob = encoder_dropout_prob
-    self.encoder_linear_1 = torch.nn.ModuleList([torch.nn.Linear(self.dim, self.dim)
+    self.encoder_linear_1 = torch.nn.ModuleList([LocalLinear(self.dim, self.dim)
                                                  for i in range(self.encoder_hidden_layers)])
-    self.encoder_line_intermidia = torch.nn.ModuleList([torch.nn.Linear(self.dim, encoder_intermediate_dim)
+    self.encoder_line_intermidia = torch.nn.ModuleList([LocalLinear(self.dim, encoder_intermediate_dim)
                                                         for i in range(self.encoder_hidden_layers)])
-    self.encoder_line_2 = torch.nn.ModuleList([torch.nn.Linear(encoder_intermediate_dim, self.dim)
+    self.encoder_line_2 = torch.nn.ModuleList([LocalLinear(encoder_intermediate_dim, self.dim)
                                                for i in range(self.encoder_hidden_layers)])
     
     self.encoder_normal = torch.nn.ModuleList([torch.nn.LayerNorm(pos_dim) for _ in range(self.encoder_hidden_layers)])
 
     # pointer
-    self.pointer_linear = torch.nn.Linear(self.dim, 2)
+    self.pointer_linear = LocalLinear(self.dim, 2)
     # self.pointer_softmax = torch.nn.Softmax(dim=-2)
 
 
   def init_positon_embedding(self, max_postion, pos_dim):
     posi_embedding = torch.Tensor(max_postion, pos_dim)
-    posi_embedding = torch.nn.init.kaiming_normal(posi_embedding, a=math.sqrt(5), mode='fan_in', nonlinearity='leaky_relu')
+    # posi_embedding = torch.nn.init.kaiming_normal(posi_embedding, a=math.sqrt(5), mode='fan_in', nonlinearity='leaky_relu')
     self.position_embedding = torch.nn.Parameter(posi_embedding)
+    torch.nn.init.kaiming_normal_(self.position_embedding, mode='fan_out')
 
 
   def embedding(self, input_ids, segment_ids):
@@ -346,9 +350,12 @@ class ModelBaseLine(torch.nn.Module):
       # batchsize, sequence_length, posi_duim
       embeddings = self.attention_layer[index](embeddings, embeddings, input_mask)
       embeddings = self.encoder_linear_1[index](embeddings)
+      embeddings = torch.relu(embeddings)
       embeddings = self.encoder_line_intermidia[index](embeddings)
-      embeddings = gelu(embeddings)
+      # embeddings = gelu(embeddings)
+      embeddings = torch.relu(embeddings)
       embeddings = self.encoder_line_2[index](embeddings)
+      embeddings = torch.relu(embeddings)
       embeddings += prelayer_output
       # todo: dropout、 normal
       embeddings = self.encoder_normal[index](embeddings)
