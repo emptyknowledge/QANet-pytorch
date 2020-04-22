@@ -8,6 +8,7 @@ from lib.utils import to_torch_tensor
 import lib.config as cf
 from lib.config import logger
 from my_py_toolkit.decorator.decorator import fn_timer
+from my_py_toolkit.file.file_toolkit import writejson
 
 class SquadExample(object):
   """A single training/test example for simple sequence classification.
@@ -28,6 +29,16 @@ class SquadExample(object):
     self.orig_answer_text = orig_answer_text
     self.start_position = start_position
     self.end_position = end_position
+
+  def to_dict(self):
+    return {
+      "qas_id": self.qas_id,
+      "question_text": self.question_text,
+      "doc_tokens": self.doc_tokens,
+      "orig_answer_text": self.orig_answer_text,
+      "start_position": self.start_position,
+      "end_position": self.end_position
+    }
 
 
 class InputFeatures(object):
@@ -151,6 +162,14 @@ def read_squad_examples(input_file, is_training):
   logger.info("**********read_squad_examples complete!**********")
 
   return examples
+
+def save_example(expamles, path):
+  data = []
+  for exam in expamles:
+    data.append(exam.to_dict())
+  writejson(data, path)
+
+
 
 @fn_timer(logger)
 def convert_examples_to_features(examples, tokenizer, max_seq_length,

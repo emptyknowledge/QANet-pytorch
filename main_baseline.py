@@ -73,8 +73,7 @@ def train(model, optimizer, scheduler, ema, dataset, start_step, steps_num, epoc
   logger.info("start_step train:")
   softmax = torch.nn.Softmax(dim=-1)
   log_sofmax = torch.nn.LogSoftmax(dim=-1)
-  steps_num = dataset.features_size // config.batch_size
-  for step in tqdm(range(start_step, steps_num, config.batch_size), total=steps_num - start_step * config.batch_size):
+  for step in tqdm(range(start_step, steps_num, config.batch_size), total=steps_num - start_step):
     try:
       optimizer.zero_grad()
       # input_ids, input_mask, segment_ids, start_positions, end_positions, index
@@ -116,15 +115,6 @@ def train(model, optimizer, scheduler, ema, dataset, start_step, steps_num, epoc
       visual_data(model, loss, epoch, step)
       optimizer.step()
       scheduler.step()
-      if step % config.record_interval_steps ==0:
-        metrics = evaluate_valid_result(extract_result)
-        loss_avg = np.mean(clamped_losses)
-        metrics["loss"] = loss_avg
-        record_info(origin_losses, f1=[metrics["f1"]], em=[metrics["exact_match"]],
-                    valid_result=extract_result,
-                    epoch=epoch,
-                    r_type="train")
-        logger.info("Epoch {:8d} loss {:8f}\n".format(epoch, loss_avg))
       if config.use_ema:
         for name, p in model.named_parameters():
           if p.requires_grad: ema.update_parameter(name, p)
@@ -280,7 +270,9 @@ def classify(model, dataset):
 
   # return
 
-
+def record_features(dataset):
+  if config.is_save_features:
+    writejson(dataset.convert_all_features4human_visual(), config.path_save_feature)
 
 
 def train_entry():
@@ -291,7 +283,7 @@ def train_entry():
   train_dataset = get_dataset("train", config.mode)
   dev_dataset = get_dataset("dev", config.mode)
   trial_dataset = get_dataset("trial", config.mode)
-
+  record_features(train_dataset)
   lr = config.learning_rate
   base_lr = 1.0
   num_train_steps = int(train_dataset.features_size/ config.batch_size * config.epochs)
@@ -317,18 +309,20 @@ def train_entry():
     train(model, optimizer, scheduler, ema, train_dataset, start_index,
           get_steps("train", config.mode), epoch)
           # 1, epoch) # todo: debug 完删掉
-    valid(model, dev_dataset, epoch)
-    metrics = test(model, trial_dataset, epoch)
-    logger.info("Learning rate: {}".format(scheduler.get_lr()))
-    dev_f1 = metrics["f1"]
-    dev_em = metrics["exact_match"]
-    if dev_f1 < best_f1 and dev_em < best_em:
-      patience += 1
-      if patience > config.early_stop: break
-    else:
-      patience = 0
-      best_f1 = max(best_f1, dev_f1)
-      best_em = max(best_em, dev_em)
+    # TODO: 暂时仙注掉在开发集、验证集上的测试，等训练集收敛了在放开
+    if config.is_test_with_test_dev_dataset:
+      valid(model, dev_dataset, epoch)
+      metrics = test(model, trial_dataset, epoch)
+      logger.info("Learning rate: {}".format(scheduler.get_lr()))
+      dev_f1 = metrics["f1"]
+      dev_em = metrics["exact_match"]
+      if dev_f1 < best_f1 and dev_em < best_em:
+        patience += 1
+        if patience > config.early_stop: break
+      else:
+        patience = 0
+        best_f1 = max(best_f1, dev_f1)
+        best_em = max(best_em, dev_em)
     start_index = 0
     train_dataset.shuffle()
 

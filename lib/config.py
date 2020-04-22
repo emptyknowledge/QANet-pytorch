@@ -37,6 +37,9 @@ test_meta_file = os.path.join(target_dir, "test_meta.json")
 word2idx_file = os.path.join(target_dir, "word2idx.json")
 char2idx_file = os.path.join(target_dir, "char2idx.json")
 answer_file = os.path.join(answer_dir, "answer.json")
+is_save_features = False
+path_save_feature = "./data/cmrc2018_features"
+is_test_with_test_dev_dataset = False
 
 do_lower_case = True
 

@@ -259,5 +259,11 @@ class CMRC_QADataSet(Dataset):
       res.append(self.convert_predict_values_with_feature_index(feature_index, predict_start, predict_end, property))
     return res
 
+  def convert_all_features4human_visual(self):
+    result = []
+    for i in range(self.features_size):
+      result.append(self.convert_predict_values_with_feature_index(i, 0, 0, 0))
+    return result
+
 
 

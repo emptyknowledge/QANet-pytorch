@@ -198,8 +198,16 @@ def test_torch_buildin():
   print("a2 layer1: ", a2.mean(), a2.std())
   print("a3 layer1: ", a3.mean(), a3.std())
 
+def test_save_features():
+  from lib.handler import get_dataset
+  from my_py_toolkit.file.file_toolkit import writejson
+  import lib.config as cf
+  dataset = get_dataset("train", cf.mode)
+  writejson(dataset.convert_all_features4human_visual(), cf.path_save_feature)
+
 if __name__ == "__main__":
+  test_save_features()
   # test_init_normal()
-  test_init_xavier()
-  test_init_kaiming()
-  test_torch_buildin()
+  # test_init_xavier()
+  # test_init_kaiming()
+  # test_torch_buildin()
