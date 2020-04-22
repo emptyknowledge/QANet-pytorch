@@ -309,7 +309,7 @@ def train_entry():
     train(model, optimizer, scheduler, ema, train_dataset, start_index,
           get_steps("train", config.mode), epoch)
           # 1, epoch) # todo: debug 完删掉
-    # TODO: 暂时仙注掉在开发集、验证集上的测试，等训练集收敛了在放开
+
     if config.is_test_with_test_dev_dataset:
       valid(model, dev_dataset, epoch)
       metrics = test(model, trial_dataset, epoch)
