@@ -294,7 +294,7 @@ class ModelBaseLine(torch.nn.Module):
     self.dim = pos_dim
     self.bert = load_bert(bert_path, device, use_pretrained_bert, cf.bert_config, cf.use_segment_embedding, LocalBert)
     self.dropout = torch.nn.Dropout(dropout)
-    self.layer_normal = torch.nn.LayerNorm(pos_dim)
+    self.layer_normal = torch.nn.LayerNorm([max_postion, pos_dim])
     self.use_position_embedding = use_position_embedding
     self.encoder_hidden_layers = encoder_hidden_layers
     if self.use_position_embedding:
@@ -313,7 +313,7 @@ class ModelBaseLine(torch.nn.Module):
     self.encoder_line_2 = torch.nn.ModuleList([LocalLinear(encoder_intermediate_dim, self.dim)
                                                for i in range(self.encoder_hidden_layers)])
     
-    self.encoder_normal = torch.nn.ModuleList([torch.nn.LayerNorm(pos_dim) for _ in range(self.encoder_hidden_layers)])
+    self.encoder_normal = torch.nn.ModuleList([torch.nn.LayerNorm([max_postion, pos_dim]) for _ in range(self.encoder_hidden_layers)])
 
     # pointer
     self.pointer_linear = LocalLinear(self.dim, 2)

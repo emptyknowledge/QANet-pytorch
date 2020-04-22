@@ -73,7 +73,8 @@ def train(model, optimizer, scheduler, ema, dataset, start_step, steps_num, epoc
   logger.info("start_step train:")
   softmax = torch.nn.Softmax(dim=-1)
   log_sofmax = torch.nn.LogSoftmax(dim=-1)
-  for step in tqdm(range(start_step, steps_num, config.batch_size), total=steps_num - start_step):
+  steps_num = dataset.features_size // config.batch_size
+  for step in tqdm(range(start_step, steps_num, config.batch_size), total=steps_num - start_step * config.batch_size):
     try:
       optimizer.zero_grad()
       # input_ids, input_mask, segment_ids, start_positions, end_positions, index
@@ -94,7 +95,7 @@ def train(model, optimizer, scheduler, ema, dataset, start_step, steps_num, epoc
       loss2 = F.nll_loss(log_sofmax(end_embeddings), end_positions,
                          reduction='mean')
       loss = (loss1 + loss2) / 2
-      logger.info(f"Origin Loss: {loss}, step: {step}")
+      logger.info(f"Origin Loss: {loss}, epoch: {epoch}, step: {step}")
       origin_losses.append(loss.item())
 
       pre_start, pre_end, probabilities = find_max_proper_batch(
@@ -109,18 +110,21 @@ def train(model, optimizer, scheduler, ema, dataset, start_step, steps_num, epoc
       )
 
       loss = torch.clamp(loss, min=config.min_loss, max=config.max_loss)
-      logger.info(f"Clamped Loss: {loss}, step: {step}")
+      logger.info(f"Clamped Loss: {loss}, epoch: {epoch}, step: {step}")
       clamped_losses.append(loss.item())
       loss.backward()
-      gradient = get_gradient(model)
-      parameter_values = get_parameter_values(model)
-      gradient = transfer_multi_layer_dict(gradient)
-      parameter_values = transfer_multi_layer_dict(parameter_values)
-      visual_tensorboard(config.visual_gradient_dir, "gradient", gradient, epoch, step)
-      visual_tensorboard(config.visual_parameter_dir, "parameter_values", parameter_values, epoch, step)
-      visual_tensorboard(config.visual_loss_dir, "loss", {"loss": [loss.item()]}, epoch, step)
+      visual_data(model, loss, epoch, step)
       optimizer.step()
       scheduler.step()
+      if step % config.record_interval_steps ==0:
+        metrics = evaluate_valid_result(extract_result)
+        loss_avg = np.mean(clamped_losses)
+        metrics["loss"] = loss_avg
+        record_info(origin_losses, f1=[metrics["f1"]], em=[metrics["exact_match"]],
+                    valid_result=extract_result,
+                    epoch=epoch,
+                    r_type="train")
+        logger.info("Epoch {:8d} loss {:8f}\n".format(epoch, loss_avg))
       if config.use_ema:
         for name, p in model.named_parameters():
           if p.requires_grad: ema.update_parameter(name, p)
@@ -139,6 +143,30 @@ def train(model, optimizer, scheduler, ema, dataset, start_step, steps_num, epoc
               epoch=epoch,
               r_type="train")
   logger.info("Epoch {:8d} loss {:8f}\n".format(epoch, loss_avg))
+
+@fn_timer(logger)
+def visual_data(model, loss, epoch, step):
+  """
+  可视化数据
+  Args:
+    model:
+    loss:
+    epoch:
+    step:
+
+  Returns:
+
+  """
+  if config.visual_gradient:
+    gradient = get_gradient(model)
+    gradient = transfer_multi_layer_dict(gradient)
+    visual_tensorboard(config.visual_gradient_dir, "gradient", gradient, epoch, step)
+  if config.visual_parameter:
+    parameter_values = get_parameter_values(model)
+    parameter_values = transfer_multi_layer_dict(parameter_values)
+    visual_tensorboard(config.visual_parameter_dir, "parameter_values", parameter_values, epoch, step)
+  if config.visual_loss:
+    visual_tensorboard(config.visual_loss_dir, "loss", {"loss": [loss.item()]}, epoch, step)
 
 @fn_timer(logger)
 def valid(model, dataset, epoch=0):

@@ -120,6 +120,7 @@ fasttext = False #Whether to use fasttext
 
 is_only_save_params = True
 
+record_interval_steps = 500
 log_path = "../log/log.txt"
 losses_path = "../log/losses_log.txt"
 valid_result_dir = "../log/valid_result"
@@ -130,6 +131,9 @@ logger = get_logger(log_path)
 # data visualization
 font_file = "./data/font/fangsong.ttf"
 visual_data_dir = "./runs"
+visual_loss = True
+visual_gradient = True
+visual_parameter = False
 visual_gradient_dir = "../log/gradients"
 visual_parameter_dir = "../log/parameters"
 visual_loss_dir = "../log/losses"
