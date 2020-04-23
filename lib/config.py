@@ -61,7 +61,7 @@ embedding_trainable_dim = 512 # 可训练词向量维度
 embedding_trainable_model = "./model/embedding_trainable_model.bin" # 可训练词向量维度
 
 context_length_limit = 512 #Limit length for paragraph
-ques_length_limit = 20 #Limit length for question
+ques_length_limit = 64 #Limit length for question
 ans_length_limit = 30 #Limit length for answers
 char_length_limit = 16 #Limit length for character
 word_count_limit = -1 #Min count for word
@@ -79,7 +79,7 @@ num_threads = 4 #Number of threads in input pipeline
 is_bucket = False #build bucket batch iterator or not
 bucket_range = [40, 401, 40] #the range of bucket
 
-batch_size = 4 #Batch size
+batch_size = 24 #Batch size
 num_steps = 10000 #Number of steps
 checkpoint = 50 # 200 #checkpoint to save and evaluate the model
 period = 100 #period to save batch loss
