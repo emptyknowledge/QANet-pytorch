@@ -240,6 +240,7 @@ class CMRC_QADataSet(Dataset):
       "question": question,
       "label_answer":label_answer,
       "predict_answer": predict_answer,
+      "is_correct": label_answer==predict_answer,
       "probability": float(probability)
     }
 
