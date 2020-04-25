@@ -10,7 +10,7 @@ glove_word_file = os.path.join(home, "data", "glove", "glove.840B.300d.txt")
 
 device = "cuda" # cpu、 cuda
 
-mode = "train" # train, classify, debug
+mode = "debug" # train, classify, debug
 
 bert_path = "./data/model/bert"
 vocab_file = "./data/model/bert/vocab.txt"
@@ -71,7 +71,7 @@ question_kernel_size = 5
 doc_stride = 128
 
 is_train = True
-is_continue = True
+is_continue = False
 model_dir = "./model"
 continue_checkpoint = 9600 # 500 的时候 loss 到达最低处 2.0+
 capacity = 15000 #Batch size of dataset shuffle
@@ -137,6 +137,8 @@ visual_data_dir = "./runs"
 visual_loss = True
 visual_gradient = True
 visual_parameter = False
+visual_optimizer = True
 visual_gradient_dir = "../log/gradients"
 visual_parameter_dir = "../log/parameters"
 visual_loss_dir = "../log/losses"
+visual_optimizer_dir = "../log/optimizer"

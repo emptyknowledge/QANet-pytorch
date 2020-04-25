@@ -1,4 +1,5 @@
 import lib.config as config
+import copy
 from math import log2
 import os
 import numpy as np
@@ -112,7 +113,7 @@ def train(model, optimizer, scheduler, ema, dataset, start_step, steps_num, epoc
       logger.info(f"Clamped Loss: {loss}, epoch: {epoch}, step: {step}")
       clamped_losses.append(loss.item())
       loss.backward()
-      visual_data(model, loss, epoch, step)
+      visual_data(model, loss, optimizer, epoch, step)
       optimizer.step()
       scheduler.step()
       if config.use_ema:
@@ -135,7 +136,7 @@ def train(model, optimizer, scheduler, ema, dataset, start_step, steps_num, epoc
   logger.info("Epoch {:8d} loss {:8f}\n".format(epoch, loss_avg))
 
 @fn_timer(logger)
-def visual_data(model, loss, epoch, step):
+def visual_data(model, loss, optimizer, epoch, step):
   """
   可视化数据
   Args:
@@ -157,6 +158,17 @@ def visual_data(model, loss, epoch, step):
     visual_tensorboard(config.visual_parameter_dir, "parameter_values", parameter_values, epoch, step)
   if config.visual_loss:
     visual_tensorboard(config.visual_loss_dir, "loss", {"loss": [loss.item()]}, epoch, step)
+  if config.visual_optimizer:
+    visual_tensorboard(config.visual_optimizer_dir, "optimizer", process_optimizer_info(optimizer), epoch, step)
+
+def process_optimizer_info(optimizer):
+  val = copy.deepcopy(optimizer.defaults)
+  result = {}
+  for k,v in val.items():
+    if not isinstance(v, list):
+      v = [v]
+    result[k] = np.asarray(v)
+  return result
 
 @fn_timer(logger)
 def valid(model, dataset, epoch=0):
