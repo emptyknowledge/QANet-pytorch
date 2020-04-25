@@ -209,9 +209,16 @@ def test_np():
   import numpy as np
   print(np.asarray((1,2)))
 
+def test_loss():
+  import torch.nn.functional as F
+  a = torch.zeros(512)
+  a[0] = 1
+  print(a)
+  print(F.nll_loss(1,2))
+
 if __name__ == "__main__":
   # test_save_features()
-  test_np()
+  test_loss()
   # test_init_normal()
   # test_init_xavier()
   # test_init_kaiming()

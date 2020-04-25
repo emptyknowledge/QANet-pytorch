@@ -7,6 +7,7 @@
 
 import re
 import os
+import numpy as np
 import torch
 from collections import Counter
 import lib.config as config
@@ -501,5 +502,9 @@ def transfer_multi_layer_dict(dict_value):
   return result
 
 
-
+def convert_one_hot(input_array, class_num):
+  result = np.zeros((len(input_array), class_num))
+  for index, v in enumerate(input_array):
+    result[index][v] = 1
+  return result
 

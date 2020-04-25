@@ -100,6 +100,7 @@ def train(model, optimizer, scheduler, ema, dataset, start_step, steps_num, epoc
 
       pre_start, pre_end, probabilities = find_max_proper_batch(
         softmax(start_embeddings), softmax(end_embeddings))
+      pre_loss = cal_pre_loss(pre_start, pre_end, start_positions, end_positions)
       extract_result.extend(
         dataset.convert_predict_values_with_batch_feature_index(index,
                                                                 pre_start,
@@ -113,7 +114,7 @@ def train(model, optimizer, scheduler, ema, dataset, start_step, steps_num, epoc
       logger.info(f"Clamped Loss: {loss}, epoch: {epoch}, step: {step}")
       clamped_losses.append(loss.item())
       loss.backward()
-      visual_data(model, loss, optimizer, epoch, step)
+      visual_data(model, loss, pre_loss, optimizer, epoch, step)
       optimizer.step()
       scheduler.step()
       if config.use_ema:
@@ -135,8 +136,21 @@ def train(model, optimizer, scheduler, ema, dataset, start_step, steps_num, epoc
               r_type="train")
   logger.info("Epoch {:8d} loss {:8f}\n".format(epoch, loss_avg))
 
+
+def cal_pre_loss(pre_start, pre_end, start_positions, end_positions):
+  """"""
+  loss1 = F.nll_loss(convert_one_hot(pre_start, config.context_length_limit),
+                     start_positions,
+                     reduction="mean")
+  loss2 = F.nll_loss(convert_one_hot(pre_end, config.context_length_limit),
+                     end_positions,
+                     reduction="mean")
+  loss = (loss1 + loss2) / 2
+  return loss
+
+
 @fn_timer(logger)
-def visual_data(model, loss, optimizer, epoch, step):
+def visual_data(model, loss, pre_loss, optimizer, epoch, step):
   """
   可视化数据
   Args:
@@ -157,9 +171,11 @@ def visual_data(model, loss, optimizer, epoch, step):
     parameter_values = transfer_multi_layer_dict(parameter_values)
     visual_tensorboard(config.visual_parameter_dir, "parameter_values", parameter_values, epoch, step)
   if config.visual_loss:
-    visual_tensorboard(config.visual_loss_dir, "loss", {"loss": [loss.item()]}, epoch, step)
+    visual_tensorboard(config.visual_loss_dir, "loss", {"loss": [loss.item()],
+                                                        "pre_loss": [pre_loss]}, epoch, step)
   if config.visual_optimizer:
     visual_tensorboard(config.visual_optimizer_dir, "optimizer", process_optimizer_info(optimizer), epoch, step)
+
 
 def process_optimizer_info(optimizer):
   val = copy.deepcopy(optimizer.defaults)
@@ -297,7 +313,7 @@ def train_entry():
   trial_dataset = get_dataset("trial", config.mode)
   record_features(train_dataset)
   lr = config.learning_rate
-  base_lr = 0.1
+  base_lr = 1.0
   num_train_steps = int(train_dataset.features_size/ config.batch_size * config.epochs)
   warm_up = int(num_train_steps * config.warmup_proportion)
 

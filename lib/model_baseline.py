@@ -167,9 +167,9 @@ class Attention(torch.nn.Module):
     if not self.dim % self.attention_head_num == 0:
       raise Exception(f"The dim({self.dim}) % attention_head_num({self.attention_head_num}) != 0")
     self.size_per_head = int(self.dim / self.attention_head_num)
-    self.query_layer = LocalLinear(self.dim, self.dim, self.use_bias)
-    self.key_layer = LocalLinear(self.dim, self.dim, self.use_bias)
-    self.value_layer = LocalLinear(self.dim, self.dim, self.use_bias)
+    self.query_layer = torch.nn.Linear(self.dim, self.dim, self.use_bias)
+    self.key_layer = torch.nn.Linear(self.dim, self.dim, self.use_bias)
+    self.value_layer = torch.nn.Linear(self.dim, self.dim, self.use_bias)
     self.softmax = torch.nn.Softmax(dim=-1)
 
   def transpose4score(self, tensor, shape):
@@ -306,17 +306,17 @@ class ModelBaseLine(torch.nn.Module):
       for i in range(self.encoder_hidden_layers)
     ])
     self.encoder_dropout_prob = encoder_dropout_prob
-    self.encoder_linear_1 = torch.nn.ModuleList([LocalLinear(self.dim, self.dim)
+    self.encoder_linear_1 = torch.nn.ModuleList([torch.nn.Linear(self.dim, self.dim)
                                                  for i in range(self.encoder_hidden_layers)])
-    self.encoder_line_intermidia = torch.nn.ModuleList([LocalLinear(self.dim, encoder_intermediate_dim)
+    self.encoder_line_intermidia = torch.nn.ModuleList([torch.nn.Linear(self.dim, encoder_intermediate_dim)
                                                         for i in range(self.encoder_hidden_layers)])
-    self.encoder_line_2 = torch.nn.ModuleList([LocalLinear(encoder_intermediate_dim, self.dim)
+    self.encoder_line_2 = torch.nn.ModuleList([torch.nn.Linear(encoder_intermediate_dim, self.dim)
                                                for i in range(self.encoder_hidden_layers)])
     
     self.encoder_normal = torch.nn.ModuleList([torch.nn.LayerNorm([max_postion, pos_dim]) for _ in range(self.encoder_hidden_layers)])
 
     # pointer
-    self.pointer_linear = LocalLinear(self.dim, 2)
+    self.pointer_linear = torch.nn.Linear(self.dim, 2)
     # self.pointer_softmax = torch.nn.Softmax(dim=-2)
 
 
@@ -351,11 +351,11 @@ class ModelBaseLine(torch.nn.Module):
       embeddings = self.attention_layer[index](embeddings, embeddings, input_mask)
       embeddings = self.encoder_linear_1[index](embeddings)
       embeddings = torch.relu(embeddings)
-      embeddings = self.encoder_line_intermidia[index](embeddings)
-      # embeddings = gelu(embeddings)
-      embeddings = torch.relu(embeddings)
-      embeddings = self.encoder_line_2[index](embeddings)
-      embeddings = torch.relu(embeddings)
+      # embeddings = self.encoder_line_intermidia[index](embeddings)
+      # # embeddings = gelu(embeddings)
+      # embeddings = torch.relu(embeddings)
+      # embeddings = self.encoder_line_2[index](embeddings)
+      # embeddings = torch.relu(embeddings)
       embeddings += prelayer_output
       # todo: dropout、 normal
       embeddings = self.encoder_normal[index](embeddings)
