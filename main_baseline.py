@@ -285,7 +285,7 @@ def train_entry():
   trial_dataset = get_dataset("trial", config.mode)
   record_features(train_dataset)
   lr = config.learning_rate
-  base_lr = 1.0
+  base_lr = 0.1
   num_train_steps = int(train_dataset.features_size/ config.batch_size * config.epochs)
   warm_up = int(num_train_steps * config.warmup_proportion)
 
