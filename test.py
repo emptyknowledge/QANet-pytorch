@@ -205,8 +205,13 @@ def test_save_features():
   dataset = get_dataset("train", cf.mode)
   writejson(dataset.convert_all_features4human_visual(), cf.path_save_feature)
 
+def test_np():
+  import numpy as np
+  print(np.asarray((1,2)))
+
 if __name__ == "__main__":
-  test_save_features()
+  # test_save_features()
+  test_np()
   # test_init_normal()
   # test_init_xavier()
   # test_init_kaiming()
