@@ -502,8 +502,14 @@ def transfer_multi_layer_dict(dict_value):
   return result
 
 
+def covert_position_embeddings(position_embeddings, predict, log_softmax):
+  for index, v in enumerate(predict):
+    position_embeddings[index][v] += 1
+  position_embeddings = log_softmax(log_softmax)
+  return position_embeddings
+
 def convert_one_hot(input_array, class_num):
-  result = np.zeros((len(input_array), class_num))
+  result = torch.zeros((len(input_array), class_num))
   for index, v in enumerate(input_array):
     result[index][v] = 1
   return result

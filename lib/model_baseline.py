@@ -198,9 +198,12 @@ class Attention(torch.nn.Module):
     value_tensor = self.value_layer(value_tensor)
 
     query_tensor = self.transpose4score(query_tensor, (batch_size, quert_length,
-                                                       self.attention_head_num, self.size_per_head))
-    key_tensor  =self.transpose4score(key_tensor, (batch_size, value_length, self.attention_head_num, self.size_per_head))
-    attention_scores =  torch.matmul(query_tensor, key_tensor.permute(0, 1, 3, 2))
+                                                       self.attention_head_num,
+                                                       self.size_per_head))
+    key_tensor = self.transpose4score(key_tensor, (batch_size, value_length,
+                                                   self.attention_head_num,
+                                                   self.size_per_head))
+    attention_scores = torch.matmul(query_tensor, key_tensor.permute(0, 1, 3, 2))
     # batch_size, attention_head_num, query_length, value_length
     attention_scores = attention_scores * (1 / math.sqrt(float(self.size_per_head)))
 
@@ -220,6 +223,7 @@ class Attention(torch.nn.Module):
                                                  self.attention_head_num, self.size_per_head))
 
     value_tensor = value_tensor.permute(0, 2, 1, 3)
+    value_tensor = attention_scores * value_tensor
 
     # batch_size, attention_head_num, query_length, size_per_head
     attention = torch.matmul(attention_mask, value_tensor)
@@ -351,11 +355,11 @@ class ModelBaseLine(torch.nn.Module):
       embeddings = self.attention_layer[index](embeddings, embeddings, input_mask)
       embeddings = self.encoder_linear_1[index](embeddings)
       embeddings = torch.relu(embeddings)
-      # embeddings = self.encoder_line_intermidia[index](embeddings)
-      # # embeddings = gelu(embeddings)
-      # embeddings = torch.relu(embeddings)
-      # embeddings = self.encoder_line_2[index](embeddings)
-      # embeddings = torch.relu(embeddings)
+      embeddings = self.encoder_line_intermidia[index](embeddings)
+      # embeddings = gelu(embeddings)
+      embeddings = torch.relu(embeddings)
+      embeddings = self.encoder_line_2[index](embeddings)
+      embeddings = torch.relu(embeddings)
       embeddings += prelayer_output
       # todo: dropout、 normal
       embeddings = self.encoder_normal[index](embeddings)
