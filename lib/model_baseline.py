@@ -223,10 +223,10 @@ class Attention(torch.nn.Module):
                                                  self.attention_head_num, self.size_per_head))
 
     value_tensor = value_tensor.permute(0, 2, 1, 3)
-    value_tensor = attention_scores * value_tensor
+    attention = torch.matmul(attention_scores, value_tensor)
 
     # batch_size, attention_head_num, query_length, size_per_head
-    attention = torch.matmul(attention_mask, value_tensor)
+    # attention = torch.matmul(attention_mask, value_tensor)
 
     attention = attention.permute(0, 2, 1, 3)
     attention = reshape_tensor(attention, (batch_size, quert_length, self.dim))

@@ -316,8 +316,8 @@ def train_entry():
   trial_dataset = get_dataset("trial", config.mode)
   record_features(train_dataset)
   lr = config.learning_rate
-  base_lr = 5e-5
-  num_train_steps = int(train_dataset.features_size/ config.batch_size * config.epochs)
+  base_lr = 1
+  num_train_steps = int(train_dataset.features_size/ config.batch_size)
   warm_up = int(num_train_steps * config.warmup_proportion)
 
   model = get_model(config.model_package, config.model_name, config.model_class_name).to(device)
