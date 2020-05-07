@@ -316,8 +316,9 @@ def train_entry():
   trial_dataset = get_dataset("trial", config.mode)
   record_features(train_dataset)
   lr = config.learning_rate
-  base_lr = 1
-  num_train_steps = int(train_dataset.features_size/ config.batch_size)
+  base_lr = 5e-5
+  base_lr =lr
+  num_train_steps = int(train_dataset.features_size/ config.batch_size * config.epochs)
   warm_up = int(num_train_steps * config.warmup_proportion)
 
   model = get_model(config.model_package, config.model_name, config.model_class_name).to(device)
@@ -327,7 +328,7 @@ def train_entry():
     if p.requires_grad: ema.set(name, p)
   params = filter(lambda param: param.requires_grad, model.parameters())
   optimizer = optim.Adam(lr=base_lr, betas=(config.beta1, config.beta2),
-                         eps=1e-7, weight_decay=3e-7, params=params)
+                         eps=1e-8, weight_decay=0.0, params=params)
   cr = lr / log2(warm_up) if config.mode=="train" else lr
   scheduler = optim.lr_scheduler.LambdaLR(optimizer,
                                           lr_lambda=lambda ee: cr * log2(
