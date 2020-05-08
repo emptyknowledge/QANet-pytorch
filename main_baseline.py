@@ -327,8 +327,9 @@ def train_entry():
   for name, p in model.named_parameters():
     if p.requires_grad: ema.set(name, p)
   params = filter(lambda param: param.requires_grad, model.parameters())
-  optimizer = optim.Adam(lr=base_lr, betas=(config.beta1, config.beta2),
-                         eps=1e-8, weight_decay=0.0, params=params)
+  # optimizer = optim.Adam(lr=base_lr, betas=(config.beta1, config.beta2),
+  #                        eps=1e-8, weight_decay=0.0, params=params)
+  optimizer = optim.SGD(lr=lr, params=params)
   cr = lr / log2(warm_up) if config.mode=="train" else lr
   scheduler = optim.lr_scheduler.LambdaLR(optimizer,
                                           lr_lambda=lambda ee: cr * log2(
