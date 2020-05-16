@@ -205,7 +205,7 @@ class Attention(torch.nn.Module):
                                                    self.size_per_head))
     attention_scores = torch.matmul(query_tensor, key_tensor.permute(0, 1, 3, 2))
     # batch_size, attention_head_num, query_length, value_length
-    attention_scores = attention_scores * (1 / math.sqrt(float(self.size_per_head)))
+    attention_scores = attention_scores / math.sqrt(float(self.size_per_head))
 
     if attention_mask is not None:
       # batch_size, 1, sqe_len
@@ -217,7 +217,7 @@ class Attention(torch.nn.Module):
       attention_scores = attention_scores * attention_mask
 
     attention_scores = self.softmax(attention_scores)
-    attention_scores = self.dropout(attention_scores)
+    # attention_scores = self.dropout(attention_scores)
 
     value_tensor = reshape_tensor(value_tensor, (batch_size, value_length,
                                                  self.attention_head_num, self.size_per_head))
@@ -345,7 +345,7 @@ class ModelBaseLine(torch.nn.Module):
     if self.use_position_embedding:
       embeddings = embeddings + self.position_embedding
     embeddings = self.layer_normal(embeddings)
-    embeddings = self.dropout(embeddings)
+    # embeddings = self.dropout(embeddings)
     return embeddings
 
   def encoder(self, embeddings, input_mask):
@@ -364,7 +364,7 @@ class ModelBaseLine(torch.nn.Module):
       # todo: dropout、 normal
       embeddings = self.encoder_normal[index](embeddings)
       # embeddings = functional.leaky_relu(embeddings)
-      embeddings = functional.dropout(embeddings, self.encoder_dropout_prob, self.training)
+      # embeddings = functional.dropout(embeddings, self.encoder_dropout_prob, self.training)
       prelayer_output = embeddings
     return embeddings
 

@@ -124,7 +124,7 @@ def train(model, optimizer, scheduler, ema, dataset, start_step, steps_num, epoc
           if p.requires_grad: ema.update_parameter(name, p)
 
       if step % config.interval_save == 0:
-        save_model(model, step)
+        save_model(model, optimizer, step)
         record_info(origin_losses, r_type="train", epoch=step)
         origin_losses = []
     except Exception:
@@ -327,13 +327,17 @@ def train_entry():
   for name, p in model.named_parameters():
     if p.requires_grad: ema.set(name, p)
   params = filter(lambda param: param.requires_grad, model.parameters())
+  optimizer = get_optimizer(base_lr, params==params)
   # optimizer = optim.Adam(lr=base_lr, betas=(config.beta1, config.beta2),
-  #                        eps=1e-8, weight_decay=0.0, params=params)
-  optimizer = optim.SGD(lr=lr, params=params)
+  #                        eps=1e-8, weight_decay=3e-7, params=params)
+  # optimizer = optim.SGD(lr=lr, params=params)
   cr = lr / log2(warm_up) if config.mode=="train" else lr
-  scheduler = optim.lr_scheduler.LambdaLR(optimizer,
-                                          lr_lambda=lambda ee: cr * log2(
-                                            ee + 1) if ee < warm_up else lr)
+  # scheduler = optim.lr_scheduler.LambdaLR(optimizer,
+  #                                         lr_lambda=lambda ee: cr * log2(
+  #                                           ee + 1) if ee < warm_up else lr)
+  scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer,
+                                                   config.T_MAX,
+                                                   config.min_lr)
   epochs = config.epochs
   best_f1 = best_em = patience = 0
   start_index = 0 if not config.is_continue else config.continue_checkpoint
