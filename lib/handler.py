@@ -216,17 +216,44 @@ def get_model(package, name, class_name):
       model = model_class(config.bert_path, config.device, config.dropout)
       model.load_state_dict(torch.load(model_path))
     return model
+
+
+@fn_timer(logger)
+def get_optimizer(base_lr, params):
+  """
+  Gets models.
+  Returns:
+
+  """
+  if not config.is_continue:
+    return torch.optim.Adam(lr=base_lr, betas=(config.beta1, config.beta2),
+                         eps=1e-8, weight_decay=3e-7, params=params)
+  else:
+    logger.info(f"Continue train, continue_checkpoint: {config.continue_checkpoint}")
+    optimizer_path = os.path.join(config.model_dir,
+                              f"optimizer_{config.continue_checkpoint}.pkl")
+    if not config.is_only_save_params:
+      optimizer = torch.load(optimizer_path, map_location=config.device)
+    else:
+      optimizer = torch.optim.Adam(lr=base_lr, betas=(config.beta1, config.beta2),
+                         eps=1e-8, weight_decay=3e-7, params=params)
+      optimizer.load_state_dict(torch.load(optimizer_path))
+    return optimizer
   
-def save_model(model, steps=0):
+def save_model(model, optmizer, steps=0):
   model_path = os.path.join(config.model_dir, f"model_{str(steps)}.pkl")
+  optimizer_path = os.path.join(config.model_dir, f"optimizer_{str(steps)}.pkl")
   make_path_legal(model_path)
+  make_path_legal(optimizer_path)
   if not config.is_only_save_params:
     torch.save(model, model_path)
+    torch.save(optmizer, optimizer_path)
     # torch.save(model.embedding.trainable_embedding,
     #            config.embedding_trainable_model)
     # torch.save(data_set.trainable_embedding, config.embedding_trainable_model)
   else:
     torch.save(model.state_dict(), model_path)
+    torch.save(optmizer.state_dict(), optimizer_path)
     # torch.save(model.embedding.trainable_embedding,
     #            config.embedding_trainable_model)
     # torch.save(data_set.trainable_embedding, config.embedding_trainable_model)

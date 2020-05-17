@@ -134,6 +134,8 @@ class CMRC_QADataSet(Dataset):
     self.mode = mode
     if self.mode == "debug":
       self.examples = self.examples[:10]
+    if config.data_size:
+      self.examples = self.examples[:int(len(self.examples) * config.data_size) + 1]
     self.input_features = convert_examples_to_features(
         examples=self.examples,
         tokenizer=tokenizer,
@@ -181,7 +183,7 @@ class CMRC_QADataSet(Dataset):
     # index = self.idx[(item * self.batch_size) % self.data_szie: ((item + 1) * self.batch_size) % self.data_szie]
     # TODO: return trainable embedding.
     if batch_size > len(self.idx):
-      index = self.idx[(item * batch_size) % self.features_size]
+      index = self.idx[(item * batch_size) % self.features_size:]
     else:
       start_idx = (item * batch_size) % self.features_size
       end_idx = ((item + 1) * batch_size) % self.features_size
