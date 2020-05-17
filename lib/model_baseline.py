@@ -269,11 +269,26 @@ class LocalBert(torch.nn.Module):
     word_embedding = reshape_tensor(word_embedding, [batch_size, sqe_length, -1])
     return (word_embedding, None)
 
+class DepthwiseSeparableConv(torch.nn.Module):
+  def __init__(self, in_ch, out_ch, k, dim=1, bias=True):
+    super().__init__()
+    if dim == 1:
+      self.depthwise_conv = torch.nn.Conv1d(in_channels=in_ch, out_channels=in_ch, kernel_size=k, groups=in_ch,
+                                      padding=k // 2, bias=bias)
+      self.pointwise_conv = torch.nn.Conv1d(in_channels=in_ch, out_channels=out_ch, kernel_size=1, padding=0, bias=bias)
+    elif dim == 2:
+      self.depthwise_conv = torch.nn.Conv2d(in_channels=in_ch, out_channels=in_ch, kernel_size=k, groups=in_ch,
+                                      padding=k // 2, bias=bias)
+      self.pointwise_conv = torch.nn.Conv2d(in_channels=in_ch, out_channels=out_ch, kernel_size=1, padding=0, bias=bias)
+    else:
+      raise Exception("Wrong dimension for Depthwise Separable Convolution!")
+    torch.nn.init.kaiming_normal_(self.depthwise_conv.weight)
+    torch.nn.init.constant_(self.depthwise_conv.bias, 0.0)
+    torch.nn.init.kaiming_normal_(self.depthwise_conv.weight)
+    torch.nn.init.constant_(self.pointwise_conv.bias, 0.0)
 
-
-
-
-
+  def forward(self, x):
+    return self.pointwise_conv(self.depthwise_conv(x))
 
 
 
@@ -290,7 +305,11 @@ class ModelBaseLine(torch.nn.Module):
                attention_probs_dropout_prob=cf.attention_probs_dropout_prob,
                attention_use_bias=cf.attention_use_bias,
                training=True,
-               use_pretrained_bert=cf.use_pretrained_bert):
+               use_pretrained_bert=cf.use_pretrained_bert,
+               use_conv=False,
+               chan_in=cf.chan_in,
+               chan_out=cf.chan_out,
+               kernel=cf.kernel):
     """"""
     super(ModelBaseLine, self).__init__()
     self.training = training
@@ -303,6 +322,9 @@ class ModelBaseLine(torch.nn.Module):
     self.encoder_hidden_layers = encoder_hidden_layers
     if self.use_position_embedding:
       self.init_positon_embedding(max_postion, pos_dim)
+    # conv
+    self.use_conv = use_conv
+    self.conv = DepthwiseSeparableConv(chan_in, chan_out, kernel, dim=2)
 
     # encoder
     self.attention_layer = torch.nn.ModuleList([
@@ -344,7 +366,14 @@ class ModelBaseLine(torch.nn.Module):
     embeddings, _ = self.bert(input_ids, segment_ids)
     if self.use_position_embedding:
       embeddings = embeddings + self.position_embedding
+    # batch_size, length, dim
     embeddings = self.layer_normal(embeddings)
+    if self.use_conv:
+        embeddings = embeddings.unsqueeze(-1)
+        embeddings = embeddings.permute(0, 3 ,2, 1)
+        embeddings = self.conv(embeddings)
+        embeddings = embeddings.permute(0, 3, 2, 1)
+        embeddings = embeddings.squeeze(-1)
     # embeddings = self.dropout(embeddings)
     return embeddings
 

@@ -5,6 +5,7 @@
 # cython: language_level=3
 #
 
+import json
 import re
 import os
 import numpy as np
@@ -20,18 +21,18 @@ from lib.utils import *
 from my_py_toolkit.decorator.decorator import fn_timer
 from pytorch_transformers import BertModel
 
-def evaluate_valid_result(valid_result):
-  f1 = exact_match = total = 0
+def evaluate_valid_result(valid_result, exact_match_total=0, f1_total=0, total=0):
+  # f1 = exact_match = total = 0
   for item in valid_result:
     total += 1
     ground_truths = item.get("label_answer")
     prediction = item.get("predict_answer")
-    exact_match += metric_max_over_ground_truths(exact_match_score, prediction,
-                                                 ground_truths)
-    f1 += metric_max_over_ground_truths(f1_score, prediction, ground_truths)
-  exact_match = 100.0 * exact_match / total
-  f1 = 100.0 * f1 / total
-  return {'exact_match': exact_match, 'f1': f1}
+    exact_match_total += metric_max_over_ground_truths(exact_match_score, prediction,
+                                                       ground_truths)
+    f1_total += metric_max_over_ground_truths(f1_score, prediction, ground_truths)
+  exact_match = 100.0 * exact_match_total / total
+  f1 = 100.0 * f1_total / total
+  return exact_match_total, f1_total, exact_match, f1
 
 
 
@@ -279,8 +280,8 @@ def get_dataset(data_type="train", mode="train"):
                         config.batch_size, mode)
     return dataset
 
-def record_info(losses, f1=[], em=[], valid_result={}, epoch=0,
-                r_type="train"):
+def record_info(losses=[], f1=[], em=[], valid_result={}, epoch=0,
+                r_type="train", is_continue=True):
   """
   记录训练中的 loss, f1, em 值.
   Args:
@@ -297,14 +298,15 @@ def record_info(losses, f1=[], em=[], valid_result={}, epoch=0,
   f1 = [str(v) for v in f1]
   em = [str(v) for v in em]
   if losses:
-    write2file(",".join(losses), f"{dir_name}losses.txt")
+    write2file(",".join(losses), f"{dir_name}losses.txt", is_continue=is_continue)
   if f1:
-    write2file(",".join(f1), f"{dir_name}f1.txt")
+    write2file(",".join(f1), f"{dir_name}f1.txt", is_continue=is_continue)
   if em:
-    write2file(",".join(em), f"{dir_name}em.txt")
+    write2file(",".join(em), f"{dir_name}em.txt", is_continue=is_continue)
 
   if valid_result:
-    writejson(valid_result, f"{dir_name}valid_result_{epoch}.json")
+    write2file(json.dumps(valid_result, ensure_ascii=False, indent=2),
+               f"{dir_name}valid_result_{epoch}.json", is_continue=is_continue)
 
 
 def corresponds_index(origin, token):

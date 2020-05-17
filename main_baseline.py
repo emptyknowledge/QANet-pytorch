@@ -71,6 +71,10 @@ def train(model, optimizer, scheduler, ema, dataset, start_step, steps_num, epoc
   clamped_losses = []
   origin_losses = []
   extract_result = []
+  exact_match_total = 0
+  f1_total = 0
+  exact_match = 0
+  f1 = 0
   logger.info("start_step train:")
   softmax = torch.nn.Softmax(dim=-1)
   log_sofmax = torch.nn.LogSoftmax(dim=-1)
@@ -101,22 +105,18 @@ def train(model, optimizer, scheduler, ema, dataset, start_step, steps_num, epoc
       pre_start, pre_end, probabilities = find_max_proper_batch(
         softmax(start_embeddings), softmax(end_embeddings))
       pre_loss = loss
-      # pre_loss = cal_pre_loss(pre_start, pre_end, start_positions, end_positions,
-      #                         start_embeddings, end_embeddings, log_sofmax)
-      extract_result.extend(
-        dataset.convert_predict_values_with_batch_feature_index(index,
+      cur_res = dataset.convert_predict_values_with_batch_feature_index(index,
                                                                 pre_start,
                                                                 pre_end,
                                                                 probabilities)
-        # convert_valid_result_baseline(index, start_positions, end_positions, pre_start, pre_end, dataset,
-        #                      index)
-      )
 
       loss = torch.clamp(loss, min=config.min_loss, max=config.max_loss)
       logger.info(f"Clamped Loss: {loss}, epoch: {epoch}, step: {step}")
       clamped_losses.append(loss.item())
       loss.backward()
-      visual_data(model, loss, pre_loss, optimizer, epoch, step)
+      record_info(valid_result=cur_res, epoch=epoch, is_continue=True)
+      exact_match_total, f1_total, exact_match, f1 = evaluate_valid_result(cur_res, exact_match_total, f1_total, step + config.batch_size)
+      visual_data(model, loss, pre_loss, optimizer, epoch, step, exact_match_total, f1_total, exact_match, f1)
       optimizer.step()
       scheduler.step()
       if config.use_ema:
@@ -125,17 +125,17 @@ def train(model, optimizer, scheduler, ema, dataset, start_step, steps_num, epoc
 
       if step % config.interval_save == 0:
         save_model(model, optimizer, step)
-        record_info(origin_losses, r_type="train", epoch=step)
+        record_info(origin_losses, r_type="train", epoch=epoch)
         origin_losses = []
     except Exception:
       logger.error(traceback.format_exc())
   loss_avg = np.mean(clamped_losses)
-  metrics = evaluate_valid_result(extract_result)
-  metrics["loss"] = loss_avg
-  record_info(origin_losses, f1=[metrics["f1"]], em=[metrics["exact_match"]],
-              valid_result=extract_result,
-              epoch=epoch,
-              r_type="train")
+  # metrics = evaluate_valid_result(extract_result)
+  # metrics["loss"] = loss_avg
+  # record_info(origin_losses, f1=[metrics["f1"]], em=[metrics["exact_match"]],
+  #             valid_result=extract_result,
+  #             epoch=epoch,
+  #             r_type="train")
   logger.info("Epoch {:8d} loss {:8f}\n".format(epoch, loss_avg))
 
 
@@ -154,7 +154,7 @@ def cal_pre_loss(pre_start, pre_end, start_positions, end_positions,
 
 
 @fn_timer(logger)
-def visual_data(model, loss, pre_loss, optimizer, epoch, step):
+def visual_data(model, loss, pre_loss, optimizer, epoch, step, exact_match_total, f1_total, exact_match, f1):
   """
   可视化数据
   Args:
@@ -178,6 +178,13 @@ def visual_data(model, loss, pre_loss, optimizer, epoch, step):
     visual_tensorboard(config.visual_loss_dir, "loss", {"loss": [loss.item()]}, epoch, step)
   if config.visual_optimizer:
     visual_tensorboard(config.visual_optimizer_dir, "optimizer", process_optimizer_info(optimizer), epoch, step)
+  if config.visual_valid_result:
+    visual_tensorboard(config.visual_valid_result_dir, "valid", {
+      "exact_match_total": [exact_match_total],
+      "exact_match": [exact_match],
+      "f1_total": [f1_total],
+      "f1": [f1]
+    }, epoch, step)
 
 
 def process_optimizer_info(optimizer):

@@ -134,6 +134,12 @@ less_loss_path = "../data/less_loss.json"
 high_loss_path = "../data/high_loss.json"
 logger = get_logger(log_path)
 
+# Conv cf
+use_conv = True
+chan_in = 768
+chan_out=768
+kernel = 7
+
 # data visualization
 font_file = "./data/font/fangsong.ttf"
 visual_data_dir = "./runs"
@@ -141,7 +147,9 @@ visual_loss = True
 visual_gradient = True
 visual_parameter = True
 visual_optimizer = True
+visual_valid_result = True
 visual_gradient_dir = "../log/gradients"
 visual_parameter_dir = "../log/parameters"
 visual_loss_dir = "../log/losses"
 visual_optimizer_dir = "../log/optimizer"
+visual_valid_result_dir = "../log/valid"
