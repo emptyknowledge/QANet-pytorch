@@ -24,6 +24,8 @@ from lib.config import logger
 from lib.QADataSet import QADataSet
 from lib.handler import *
 from lib.utils import *
+from lib.pytorch_optimization import get_optimization
+from lib.utils_bert_finetune import torch_show_all_params, torch_init_model
 from lib.handler import *
 from lib.data_visualization.data_visualizition import visual_tensorboard
 from my_py_toolkit.file.file_toolkit import writejson
@@ -66,7 +68,7 @@ class EMA(object):
       self.shadows[name] = new_shadow.to('cpu').clone()
 
 @fn_timer(logger)
-def train(model, optimizer, scheduler, ema, dataset, start_step, steps_num, epoch):
+def train(model, optimizer, scheduler, ema, train_dataloader, start_step, steps_num, epoch):
   model.train()
   clamped_losses = []
   origin_losses = []
@@ -78,22 +80,24 @@ def train(model, optimizer, scheduler, ema, dataset, start_step, steps_num, epoc
   logger.info("start_step train:")
   softmax = torch.nn.Softmax(dim=-1)
   log_sofmax = torch.nn.LogSoftmax(dim=-1)
-  for step in tqdm(range(start_step, steps_num, config.batch_size), total=steps_num - start_step):
+  for step, batch in enumerate(train_dataloader):
     try:
       optimizer.zero_grad()
+      batch = tuple(t.to(device) for t in batch)
+      input_ids, input_mask, segment_ids, start_positions, end_positions = batch
       # input_ids, input_mask, segment_ids, start_positions, end_positions, index
-      input_ids, input_mask, input_span_mask, segment_ids, start_positions, end_positions, index = dataset.get(
-        step, config.batch_size)
+      # input_ids, input_mask, input_span_mask, segment_ids, start_positions, end_positions, index = dataset.get(
+      #   step, config.batch_size)
       # logger.info(f"Start positions: {start_positions}, End positions: {end_positions}")
-      input_ids, input_mask, input_span_mask, segment_ids = input_ids.to(device), input_mask.to(
-        device), input_span_mask.to(device), segment_ids.to(device)
+      # input_ids, input_mask, input_span_mask, segment_ids = input_ids.to(device), input_mask.to(
+      #   device), input_span_mask.to(device), segment_ids.to(device)
       start_positions, end_positions = start_positions.to(
         device), end_positions.to(device)
       input_mask = input_mask.float()
       start_embeddings, end_embeddings = model(input_ids, input_mask,
                                                segment_ids)
-      start_embeddings = mask(start_embeddings, input_span_mask, -1)
-      end_embeddings = mask(end_embeddings, input_span_mask, -1)
+      # start_embeddings = mask(start_embeddings, input_span_mask, -1)
+      # end_embeddings = mask(end_embeddings, input_span_mask, -1)
       loss1 = F.nll_loss(log_sofmax(start_embeddings), start_positions,
                          reduction='mean')
       loss2 = F.nll_loss(log_sofmax(end_embeddings), end_positions,
@@ -105,17 +109,17 @@ def train(model, optimizer, scheduler, ema, dataset, start_step, steps_num, epoc
       pre_start, pre_end, probabilities = find_max_proper_batch(
         softmax(start_embeddings), softmax(end_embeddings))
       pre_loss = loss
-      cur_res = dataset.convert_predict_values_with_batch_feature_index(index,
-                                                                pre_start,
-                                                                pre_end,
-                                                                probabilities)
+      # cur_res = dataset.convert_predict_values_with_batch_feature_index(index,
+      #                                                           pre_start,
+      #                                                           pre_end,
+      #                                                           probabilities)
 
       loss = torch.clamp(loss, min=config.min_loss, max=config.max_loss)
       logger.info(f"Clamped Loss: {loss}, epoch: {epoch}, step: {step}")
       clamped_losses.append(loss.item())
       loss.backward()
-      record_info(valid_result=cur_res, epoch=epoch, is_continue=True)
-      exact_match_total, f1_total, exact_match, f1 = evaluate_valid_result(cur_res, exact_match_total, f1_total, step + config.batch_size)
+      # record_info(valid_result=cur_res, epoch=epoch, is_continue=True)
+      # exact_match_total, f1_total, exact_match, f1 = evaluate_valid_result(cur_res, exact_match_total, f1_total, step + config.batch_size)
       visual_data(model, loss, pre_loss, optimizer, epoch, step, exact_match_total, f1_total, exact_match, f1)
       optimizer.step()
       scheduler.step()
@@ -315,18 +319,54 @@ def record_features(dataset):
 
 def train_entry():
   from lib.models import QANet
-
+  from lib.model_baseline import BertConfig
+  from lib.tokenizations import official_tokenization as tokenization
+  from torch.utils.data import TensorDataset, DataLoader
   logger.info("Building model...")
+  bert_config = BertConfig.from_json_file(config.bert_config)
+  ############################################################################
+  # load data for bert cn finetune
+  ############################################################################
+  tokenizer = tokenization.BertTokenizer(vocab_file=config.vocab_file,
+                                         do_lower_case=True)
+  if not os.path.exists(config.train_dir):
+    json2features(config.train_file,
+                  [config.train_dir.replace('_features_', '_examples_'),
+                   config.train_dir],
+                  tokenizer, is_training=True,
+                  max_seq_length=bert_config.max_position_embeddings)
 
-  train_dataset = get_dataset("train", config.mode)
-  dev_dataset = get_dataset("dev", config.mode)
-  trial_dataset = get_dataset("trial", config.mode)
-  record_features(train_dataset)
+  if not os.path.exists(config.dev_dir1) or not os.path.exists(config.dev_dir2):
+    json2features(config.dev_file, [config.dev_dir1, config.dev_dir2], tokenizer,
+                  is_training=False,
+                  max_seq_length=bert_config.max_position_embeddings)
+  train_features = json.load(open(config.train_dir, 'r'))
+  dev_examples = json.load(open(config.dev_dir1, 'r'))
+  dev_features = json.load(open(config.dev_dir2, 'r'))
+  all_input_ids = torch.tensor([f['input_ids'] for f in train_features],
+                               dtype=torch.long)
+  all_input_mask = torch.tensor([f['input_mask'] for f in train_features],
+                                dtype=torch.long)
+  all_segment_ids = torch.tensor([f['segment_ids'] for f in train_features],
+                                 dtype=torch.long)
+  # true label
+  all_start_positions = torch.tensor(
+    [f['start_position'] for f in train_features], dtype=torch.long)
+  all_end_positions = torch.tensor([f['end_position'] for f in train_features],
+                                   dtype=torch.long)
+  train_data = TensorDataset(all_input_ids, all_input_mask, all_segment_ids,
+                             all_start_positions, all_end_positions)
+  train_dataloader = DataLoader(train_data, batch_size=config.n_batch,
+                                shuffle=True)
+
+  ############################################################################
+  ############################################################################
+  ############################################################################
   lr = config.learning_rate
   base_lr = 5e-5
   base_lr =lr
-  num_train_steps = int(train_dataset.features_size/ config.batch_size * config.epochs)
-  warm_up = int(num_train_steps * config.warmup_proportion)
+  # num_train_steps = int(train_dataset.features_size/ config.batch_size * config.epochs)
+  # warm_up = int(num_train_steps * config.warmup_proportion)
 
   model = get_model(config.model_package, config.model_name, config.model_class_name).to(device)
 
@@ -338,7 +378,7 @@ def train_entry():
   # optimizer = optim.Adam(lr=base_lr, betas=(config.beta1, config.beta2),
   #                        eps=1e-8, weight_decay=3e-7, params=params)
   # optimizer = optim.SGD(lr=lr, params=params)
-  cr = lr / log2(warm_up) if config.mode=="train" else lr
+  # cr = lr / log2(warm_up) if config.mode=="train" else lr
   # scheduler = optim.lr_scheduler.LambdaLR(optimizer,
   #                                         lr_lambda=lambda ee: cr * log2(
   #                                           ee + 1) if ee < warm_up else lr)
@@ -350,25 +390,25 @@ def train_entry():
   start_index = 0 if not config.is_continue else config.continue_checkpoint
   for epoch in range(config.start_epoch, epochs):
     logger.info(f"Epoch: {epoch}")
-    train(model, optimizer, scheduler, ema, train_dataset, start_index,
+    train(model, optimizer, scheduler, ema, train_dataloader, start_index,
           get_steps("train", config.mode), epoch)
           # 1, epoch) # todo: debug 完删掉
 
-    if config.is_test_with_test_dev_dataset:
-      valid(model, dev_dataset, epoch)
-      metrics = test(model, trial_dataset, epoch)
-      logger.info("Learning rate: {}".format(scheduler.get_lr()))
-      dev_f1 = metrics["f1"]
-      dev_em = metrics["exact_match"]
-      if dev_f1 < best_f1 and dev_em < best_em:
-        patience += 1
-        if patience > config.early_stop: break
-      else:
-        patience = 0
-        best_f1 = max(best_f1, dev_f1)
-        best_em = max(best_em, dev_em)
-    start_index = 0
-    train_dataset.shuffle()
+    # if config.is_test_with_test_dev_dataset:
+    #   valid(model, dev_dataset, epoch)
+    #   metrics = test(model, trial_dataset, epoch)
+    #   logger.info("Learning rate: {}".format(scheduler.get_lr()))
+    #   dev_f1 = metrics["f1"]
+    #   dev_em = metrics["exact_match"]
+    #   if dev_f1 < best_f1 and dev_em < best_em:
+    #     patience += 1
+    #     if patience > config.early_stop: break
+    #   else:
+    #     patience = 0
+    #     best_f1 = max(best_f1, dev_f1)
+    #     best_em = max(best_em, dev_em)
+    # start_index = 0
+    # train_dataset.shuffle()
 
 
 # def test_entry():

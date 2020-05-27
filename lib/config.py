@@ -12,13 +12,33 @@ device = "cuda" # cpu、 cuda
 
 mode = "train" # train, classify, debug
 
-bert_path = "./data/model/bert"
-vocab_file = "./data/model/bert/vocab.txt"
-bert_config = "./data/model/bert/bert_config.json"
+# bert_path = "./data/model/bert"
+bert_path = "./data/model/RoBERTa-wwm-ext-large"
+vocab_file = "./data/model/RoBERTa-wwm-ext-large/vocab.txt"
+# bert_config = "./data/model/bert/bert_config.json"
+bert_config = "./data/model/RoBERTa-wwm-ext-large/bert_config.json"
 use_segment_embedding = True
-use_pretrained_bert = False
+use_pretrained_bert = True
 # bert_path = "./data/model/RoBERTa-wwm-ext-large"
 # vocab_file = "./data/model/RoBERTa-wwm-ext-large/vocab.txt"
+
+# bert cn finetune bert config
+init_restore_dir = "check_points/pretrain_models/roberta_wwm_ext_base/pytorch_model.pth"
+checkpoint_dir = "check_points/cmrc2018/roberta_wwm_ext_base/"
+vocab_file = "check_points/pretrain_models/roberta_wwm_ext_base/vocab.txt"
+bert_config_file = "check_points/pretrain_models/roberta_wwm_ext_base/bert_config.json"
+float16 = False
+lr = 3e-5
+schedule = "warmup_linear"
+warmup_rate = 0.1
+clip_norm = 1.0
+weight_decay_rate = 0.01
+train_dir = "dataset/cmrc2018/train_features_roberta512.json"
+train_file = "origin_data/cmrc2018/cmrc2018_train.json"
+dev_dir1 = "dataset/cmrc2018/dev_examples_roberta512.json"
+dev_dir2 = "dataset/cmrc2018/dev_features_roberta512.json"
+dev_file = "origin_data/cmrc2018/cmrc2018_dev.json"
+n_batch = 1
 
 target_dir = "data"
 event_dir = "log"
@@ -56,7 +76,7 @@ glove_char_size = 94 #Corpus size for Glove
 glove_word_size = int(2.2e6) #Corpus size for Glove
 glove_dim = 300 #Embedding dimension for Glove
 char_dim = 64 #Embedding dimension for char
-bert_dim = 768 #Embedding dimension for char
+bert_dim = 1024 #Embedding dimension for char
 embedding_trainable_dim = 512 # 可训练词向量维度
 embedding_trainable_model = "./model/embedding_trainable_model.bin" # 可训练词向量维度
 
@@ -73,14 +93,17 @@ doc_stride = 128
 is_train = True
 is_continue = False
 model_dir = "./model"
-continue_checkpoint = 9600 # 500 的时候 loss 到达最低处 2.0+
+continue_checkpoint = 2700 # 500 的时候 loss 到达最低处 2.0+
 capacity = 15000 #Batch size of dataset shuffle
 num_threads = 4 #Number of threads in input pipeline
 is_bucket = False #build bucket batch iterator or not
 bucket_range = [40, 401, 40] #the range of bucket
 
-data_size = 0.01 # 使用数据集的大小
-batch_size = 6 #Batch size
+init_rang = 0.02
+initializer_range = 0.02
+
+data_size = 1 # 使用数据集的大小
+batch_size = 2 #Batch size
 num_steps = 10000 #Number of steps
 checkpoint = 50 # 200 #checkpoint to save and evaluate the model
 period = 100 #period to save batch loss
@@ -91,7 +114,7 @@ test_num_steps = 100
 dropout = 0.1 #Dropout prob across the layers
 dropout_char = 0.05 #Dropout prob across the layers
 grad_clip = 5.0 #Global Norm gradient clipping rate
-learning_rate = 0.01# 3e-7 #Learning rate
+learning_rate = 3e-5# 3e-7 #Learning rate
 lr_warm_up_num = 1000 #Number of warm-up steps of learning rate
 T_MAX = 1000
 min_lr = 1e-5
@@ -101,7 +124,7 @@ beta1 = 0.9 #Beta 1
 beta2 = 0.999 #Beta 2
 early_stop = 10 #Checkpoints for early stop
 d_model = 96 #Dimension of connectors of each layer
-num_heads = 12 #Number of heads in multi-head attention
+num_heads = 16 #Number of heads in multi-head attention
 epochs = 10 # The epoch of train.
 start_epoch = 0
 steps_num = 5000 # The num of train step in one epoch.
@@ -135,19 +158,21 @@ high_loss_path = "../data/high_loss.json"
 logger = get_logger(log_path)
 
 # Conv cf
-use_conv = True
+use_conv = False
 chan_in = 768
 chan_out=768
 kernel = 7
+use_pool= False
+pool_kernel_size = 7
 
 # data visualization
 font_file = "./data/font/fangsong.ttf"
 visual_data_dir = "./runs"
 visual_loss = True
-visual_gradient = True
-visual_parameter = True
-visual_optimizer = True
-visual_valid_result = True
+visual_gradient = False
+visual_parameter = False
+visual_optimizer = False
+visual_valid_result = False
 visual_gradient_dir = "../log/gradients"
 visual_parameter_dir = "../log/parameters"
 visual_loss_dir = "../log/losses"
