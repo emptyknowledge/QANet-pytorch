@@ -11,7 +11,10 @@ from pytorch_transformers import *
 from lib.utils import load_class, gelu
 import math
 def test():
-  print(torch.randn(3,3))
+  import datetime
+  print((datetime.datetime(2010,3, 1) - datetime.datetime(2010,2, 1)).days)
+  import calendar
+  print(calendar.monthrange(2010,2))
 
 def test_expand():
   a = torch.randn(2,2)
@@ -218,7 +221,8 @@ def test_loss():
 
 if __name__ == "__main__":
   # test_save_features()
-  test_loss()
+  # test_loss()
+  test()
   # test_init_normal()
   # test_init_xavier()
   # test_init_kaiming()

@@ -5,6 +5,7 @@
 # cython: language_level=3
 #
 
+import json
 import re
 import os
 import numpy as np
@@ -20,18 +21,18 @@ from lib.utils import *
 from my_py_toolkit.decorator.decorator import fn_timer
 from pytorch_transformers import BertModel
 
-def evaluate_valid_result(valid_result):
-  f1 = exact_match = total = 0
+def evaluate_valid_result(valid_result, exact_match_total=0, f1_total=0, total=0):
+  # f1 = exact_match = total = 0
   for item in valid_result:
     total += 1
     ground_truths = item.get("label_answer")
     prediction = item.get("predict_answer")
-    exact_match += metric_max_over_ground_truths(exact_match_score, prediction,
-                                                 ground_truths)
-    f1 += metric_max_over_ground_truths(f1_score, prediction, ground_truths)
-  exact_match = 100.0 * exact_match / total
-  f1 = 100.0 * f1 / total
-  return {'exact_match': exact_match, 'f1': f1}
+    exact_match_total += metric_max_over_ground_truths(exact_match_score, prediction,
+                                                       ground_truths)
+    f1_total += metric_max_over_ground_truths(f1_score, prediction, ground_truths)
+  exact_match = 100.0 * exact_match_total / total
+  f1 = 100.0 * f1_total / total
+  return exact_match_total, f1_total, exact_match, f1
 
 
 
@@ -216,17 +217,44 @@ def get_model(package, name, class_name):
       model = model_class(config.bert_path, config.device, config.dropout)
       model.load_state_dict(torch.load(model_path))
     return model
+
+
+@fn_timer(logger)
+def get_optimizer(base_lr, params):
+  """
+  Gets models.
+  Returns:
+
+  """
+  if not config.is_continue:
+    return torch.optim.Adam(lr=base_lr, betas=(config.beta1, config.beta2),
+                         eps=1e-8, weight_decay=3e-7, params=params)
+  else:
+    logger.info(f"Continue train, continue_checkpoint: {config.continue_checkpoint}")
+    optimizer_path = os.path.join(config.model_dir,
+                              f"optimizer_{config.continue_checkpoint}.pkl")
+    if not config.is_only_save_params:
+      optimizer = torch.load(optimizer_path, map_location=config.device)
+    else:
+      optimizer = torch.optim.Adam(lr=base_lr, betas=(config.beta1, config.beta2),
+                         eps=1e-8, weight_decay=3e-7, params=params)
+      optimizer.load_state_dict(torch.load(optimizer_path))
+    return optimizer
   
-def save_model(model, steps=0):
+def save_model(model, optmizer, steps=0):
   model_path = os.path.join(config.model_dir, f"model_{str(steps)}.pkl")
+  optimizer_path = os.path.join(config.model_dir, f"optimizer_{str(steps)}.pkl")
   make_path_legal(model_path)
+  make_path_legal(optimizer_path)
   if not config.is_only_save_params:
     torch.save(model, model_path)
+    torch.save(optmizer, optimizer_path)
     # torch.save(model.embedding.trainable_embedding,
     #            config.embedding_trainable_model)
     # torch.save(data_set.trainable_embedding, config.embedding_trainable_model)
   else:
     torch.save(model.state_dict(), model_path)
+    torch.save(optmizer.state_dict(), optimizer_path)
     # torch.save(model.embedding.trainable_embedding,
     #            config.embedding_trainable_model)
     # torch.save(data_set.trainable_embedding, config.embedding_trainable_model)
@@ -252,8 +280,8 @@ def get_dataset(data_type="train", mode="train"):
                         config.batch_size, mode)
     return dataset
 
-def record_info(losses, f1=[], em=[], valid_result={}, epoch=0,
-                r_type="train"):
+def record_info(losses=[], f1=[], em=[], valid_result={}, epoch=0,
+                r_type="train", is_continue=True):
   """
   记录训练中的 loss, f1, em 值.
   Args:
@@ -270,14 +298,15 @@ def record_info(losses, f1=[], em=[], valid_result={}, epoch=0,
   f1 = [str(v) for v in f1]
   em = [str(v) for v in em]
   if losses:
-    write2file(",".join(losses), f"{dir_name}losses.txt")
+    write2file(",".join(losses), f"{dir_name}losses.txt", is_continue=is_continue)
   if f1:
-    write2file(",".join(f1), f"{dir_name}f1.txt")
+    write2file(",".join(f1), f"{dir_name}f1.txt", is_continue=is_continue)
   if em:
-    write2file(",".join(em), f"{dir_name}em.txt")
+    write2file(",".join(em), f"{dir_name}em.txt", is_continue=is_continue)
 
   if valid_result:
-    writejson(valid_result, f"{dir_name}valid_result_{epoch}.json")
+    write2file(json.dumps(valid_result, ensure_ascii=False, indent=2),
+               f"{dir_name}valid_result_{epoch}.json", is_continue=is_continue)
 
 
 def corresponds_index(origin, token):
