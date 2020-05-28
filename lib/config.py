@@ -38,7 +38,7 @@ train_file = "origin_data/cmrc2018/cmrc2018_train.json"
 dev_dir1 = "dataset/cmrc2018/dev_examples_roberta512.json"
 dev_dir2 = "dataset/cmrc2018/dev_features_roberta512.json"
 dev_file = "origin_data/cmrc2018/cmrc2018_dev.json"
-n_batch = 1
+n_batch = 2
 
 target_dir = "data"
 event_dir = "log"

@@ -886,7 +886,7 @@ def convert_pre_res(input_ids, pre_start, pre_end, ori_start, ori_end, probabili
   """"""
   result = []
   for input, p_start, p_end, o_start, o_end, probability in zip(input_ids, pre_start, pre_end, ori_start, ori_end, probabilities):
-    tokens = tokenizer.convert_ids_to_tokens(input)
+    tokens = tokenizer.convert_ids_to_tokens(input.tolist())
     question = "".join(tokens[:tokens.index("[SEP]")])
     context = "".join(tokens[tokens.index("[SEP]"):])
     label_answer = "".join(
