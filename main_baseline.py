@@ -342,8 +342,8 @@ def train_entry():
                   is_training=False,
                   max_seq_length=bert_config.max_position_embeddings)
   train_features = json.load(open(config.train_dir, 'r'))
-  dev_examples = json.load(open(config.dev_dir1, 'r'))
-  dev_features = json.load(open(config.dev_dir2, 'r'))
+  # dev_examples = json.load(open(config.dev_dir1, 'r'))
+  # dev_features = json.load(open(config.dev_dir2, 'r'))
   all_input_ids = torch.tensor([f['input_ids'] for f in train_features],
                                dtype=torch.long)
   all_input_mask = torch.tensor([f['input_mask'] for f in train_features],

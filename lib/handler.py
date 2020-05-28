@@ -885,5 +885,19 @@ def json2features(input_file, output_files, tokenizer, is_training=False,
 def convert_pre_res(input_ids, pre_start, pre_end, ori_start, ori_end, probabilities, tokenizer):
   """"""
   result = []
-  for input, p_start, p_end, o_start, o_end, proba in zip(input_ids, pre_start, pre_end, ori_start, ori_end, probabilities):
-    tokenizer.c
+  for input, p_start, p_end, o_start, o_end, probability in zip(input_ids, pre_start, pre_end, ori_start, ori_end, probabilities):
+    tokens = tokenizer.convert_ids_to_tokens(input)
+    question = "".join(tokens[:tokens.index("[SEP]")])
+    context = "".join(tokens[tokens.index("[SEP]"):])
+    label_answer = "".join(
+      tokens[o_start:ori_end + 1])
+    predict_answer = "".join(tokens[p_start:p_end + 1])
+    cur_res = {
+      "context": context,
+      "question": question,
+      "label_answer": label_answer,
+      "predict_answer": predict_answer,
+      "is_correct": label_answer == predict_answer,
+      "probability": float(probability)
+    }
+    result.append(cur_res)
