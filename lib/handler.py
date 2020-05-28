@@ -886,11 +886,12 @@ def convert_pre_res(input_ids, pre_start, pre_end, ori_start, ori_end, probabili
   """"""
   result = []
   for input, p_start, p_end, o_start, o_end, probability in zip(input_ids, pre_start, pre_end, ori_start, ori_end, probabilities):
+    o_start, o_end, probability = o_start.tolist(), o_end.tolist(), probability.tolist()
     tokens = tokenizer.convert_ids_to_tokens(input.tolist())
     question = "".join(tokens[:tokens.index("[SEP]")])
     context = "".join(tokens[tokens.index("[SEP]"):])
     label_answer = "".join(
-      tokens[o_start:ori_end + 1])
+      tokens[o_start:o_end + 1])
     predict_answer = "".join(tokens[p_start:p_end + 1])
     cur_res = {
       "context": context,
@@ -901,3 +902,5 @@ def convert_pre_res(input_ids, pre_start, pre_end, ori_start, ori_end, probabili
       "probability": float(probability)
     }
     result.append(cur_res)
+
+  return result

@@ -31,6 +31,10 @@ from lib.data_visualization.data_visualizition import visual_tensorboard
 from my_py_toolkit.file.file_toolkit import writejson
 from my_py_toolkit.decorator.decorator import fn_timer
 
+from lib.model_baseline import BertConfig
+from lib.tokenizations import official_tokenization as tokenization
+from torch.utils.data import TensorDataset, DataLoader
+
 '''
 Some functions are from the official evaluation script.
 '''
@@ -72,7 +76,6 @@ def train(model, optimizer, scheduler, ema, train_dataloader, tokenizer, start_s
   model.train()
   clamped_losses = []
   origin_losses = []
-  extract_result = []
   exact_match_total = 0
   f1_total = 0
   exact_match = 0
@@ -85,19 +88,11 @@ def train(model, optimizer, scheduler, ema, train_dataloader, tokenizer, start_s
       optimizer.zero_grad()
       batch = tuple(t.to(device) for t in batch)
       input_ids, input_mask, segment_ids, start_positions, end_positions = batch
-      # input_ids, input_mask, segment_ids, start_positions, end_positions, index
-      # input_ids, input_mask, input_span_mask, segment_ids, start_positions, end_positions, index = dataset.get(
-      #   step, config.batch_size)
-      # logger.info(f"Start positions: {start_positions}, End positions: {end_positions}")
-      # input_ids, input_mask, input_span_mask, segment_ids = input_ids.to(device), input_mask.to(
-      #   device), input_span_mask.to(device), segment_ids.to(device)
       start_positions, end_positions = start_positions.to(
         device), end_positions.to(device)
       input_mask = input_mask.float()
       start_embeddings, end_embeddings = model(input_ids, input_mask,
                                                segment_ids)
-      # start_embeddings = mask(start_embeddings, input_span_mask, -1)
-      # end_embeddings = mask(end_embeddings, input_span_mask, -1)
       loss1 = F.nll_loss(log_sofmax(start_embeddings), start_positions,
                          reduction='mean')
       loss2 = F.nll_loss(log_sofmax(end_embeddings), end_positions,
@@ -110,17 +105,13 @@ def train(model, optimizer, scheduler, ema, train_dataloader, tokenizer, start_s
         softmax(start_embeddings), softmax(end_embeddings))
       pre_loss = loss
       cur_res = convert_pre_res(input_ids, pre_start, pre_end, start_positions, end_positions, probabilities, tokenizer)
-      # cur_res = dataset.convert_predict_values_with_batch_feature_index(index,
-      #                                                           pre_start,
-      #                                                           pre_end,
-      #                                                           probabilities)
 
       loss = torch.clamp(loss, min=config.min_loss, max=config.max_loss)
       logger.info(f"Clamped Loss: {loss}, epoch: {epoch}, step: {step}")
       clamped_losses.append(loss.item())
       loss.backward()
       record_info(valid_result=cur_res, epoch=epoch, is_continue=True)
-      # exact_match_total, f1_total, exact_match, f1 = evaluate_valid_result(cur_res, exact_match_total, f1_total, step + config.batch_size)
+      exact_match_total, f1_total, exact_match, f1 = evaluate_valid_result(cur_res, exact_match_total, f1_total, step + config.batch_size)
       visual_data(model, loss, pre_loss, optimizer, epoch, step, exact_match_total, f1_total, exact_match, f1)
       optimizer.step()
       scheduler.step()
@@ -135,12 +126,6 @@ def train(model, optimizer, scheduler, ema, train_dataloader, tokenizer, start_s
     except Exception:
       logger.error(traceback.format_exc())
   loss_avg = np.mean(clamped_losses)
-  # metrics = evaluate_valid_result(extract_result)
-  # metrics["loss"] = loss_avg
-  # record_info(origin_losses, f1=[metrics["f1"]], em=[metrics["exact_match"]],
-  #             valid_result=extract_result,
-  #             epoch=epoch,
-  #             r_type="train")
   logger.info("Epoch {:8d} loss {:8f}\n".format(epoch, loss_avg))
 
 
@@ -319,70 +304,18 @@ def record_features(dataset):
 
 
 def train_entry():
-  from lib.models import QANet
-  from lib.model_baseline import BertConfig
-  from lib.tokenizations import official_tokenization as tokenization
-  from torch.utils.data import TensorDataset, DataLoader
   logger.info("Building model...")
   bert_config = BertConfig.from_json_file(config.bert_config)
-  ############################################################################
-  # load data for bert cn finetune
-  ############################################################################
-  tokenizer = tokenization.BertTokenizer(vocab_file=config.vocab_file,
-                                         do_lower_case=True)
-  if not os.path.exists(config.train_dir):
-    json2features(config.train_file,
-                  [config.train_dir.replace('_features_', '_examples_'),
-                   config.train_dir],
-                  tokenizer, is_training=True,
-                  max_seq_length=bert_config.max_position_embeddings)
-
-  if not os.path.exists(config.dev_dir1) or not os.path.exists(config.dev_dir2):
-    json2features(config.dev_file, [config.dev_dir1, config.dev_dir2], tokenizer,
-                  is_training=False,
-                  max_seq_length=bert_config.max_position_embeddings)
-  train_features = json.load(open(config.train_dir, 'r'))
-  # dev_examples = json.load(open(config.dev_dir1, 'r'))
-  # dev_features = json.load(open(config.dev_dir2, 'r'))
-  all_input_ids = torch.tensor([f['input_ids'] for f in train_features],
-                               dtype=torch.long)
-  all_input_mask = torch.tensor([f['input_mask'] for f in train_features],
-                                dtype=torch.long)
-  all_segment_ids = torch.tensor([f['segment_ids'] for f in train_features],
-                                 dtype=torch.long)
-  # true label
-  all_start_positions = torch.tensor(
-    [f['start_position'] for f in train_features], dtype=torch.long)
-  all_end_positions = torch.tensor([f['end_position'] for f in train_features],
-                                   dtype=torch.long)
-  train_data = TensorDataset(all_input_ids, all_input_mask, all_segment_ids,
-                             all_start_positions, all_end_positions)
-  train_dataloader = DataLoader(train_data, batch_size=config.n_batch,
-                                shuffle=True)
-
-  ############################################################################
-  ############################################################################
-  ############################################################################
+  tokenizer, train_dataloader = load_data(bert_config)
   lr = config.learning_rate
-  base_lr = 5e-5
-  base_lr =lr
   # num_train_steps = int(train_dataset.features_size/ config.batch_size * config.epochs)
   # warm_up = int(num_train_steps * config.warmup_proportion)
 
   model = get_model(config.model_package, config.model_name, config.model_class_name).to(device)
 
   ema = EMA(config.ema_decay)
-  for name, p in model.named_parameters():
-    if p.requires_grad: ema.set(name, p)
-  params = filter(lambda param: param.requires_grad, model.parameters())
-  optimizer = get_optimizer(base_lr, params=params)
-  # optimizer = optim.Adam(lr=base_lr, betas=(config.beta1, config.beta2),
-  #                        eps=1e-8, weight_decay=3e-7, params=params)
-  # optimizer = optim.SGD(lr=lr, params=params)
-  # cr = lr / log2(warm_up) if config.mode=="train" else lr
-  # scheduler = optim.lr_scheduler.LambdaLR(optimizer,
-  #                                         lr_lambda=lambda ee: cr * log2(
-  #                                           ee + 1) if ee < warm_up else lr)
+  params = get_model_trainabel_param(ema, model)
+  optimizer = get_optimizer(lr, params=params)
   scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer,
                                                    config.T_MAX,
                                                    config.min_lr)
@@ -412,6 +345,54 @@ def train_entry():
     # train_dataset.shuffle()
 
 
+def get_model_trainabel_param(ema, model):
+  for name, p in model.named_parameters():
+    if p.requires_grad: ema.set(name, p)
+  params = filter(lambda param: param.requires_grad, model.parameters())
+  return params
+
+
+def load_data(bert_config):
+  ############################################################################
+  # load data for bert cn finetune
+  ############################################################################
+  tokenizer = tokenization.BertTokenizer(vocab_file=config.vocab_file,
+                                         do_lower_case=True)
+  if not os.path.exists(config.train_dir):
+    json2features(config.train_file,
+                  [config.train_dir.replace('_features_', '_examples_'),
+                   config.train_dir],
+                  tokenizer, is_training=True,
+                  max_seq_length=bert_config.max_position_embeddings)
+  if not os.path.exists(config.dev_dir1) or not os.path.exists(config.dev_dir2):
+    json2features(config.dev_file, [config.dev_dir1, config.dev_dir2],
+                  tokenizer,
+                  is_training=False,
+                  max_seq_length=bert_config.max_position_embeddings)
+  train_features = json.load(open(config.train_dir, 'r'))
+  # dev_examples = json.load(open(config.dev_dir1, 'r'))
+  # dev_features = json.load(open(config.dev_dir2, 'r'))
+  all_input_ids = torch.tensor([f['input_ids'] for f in train_features],
+                               dtype=torch.long)
+  all_input_mask = torch.tensor([f['input_mask'] for f in train_features],
+                                dtype=torch.long)
+  all_segment_ids = torch.tensor([f['segment_ids'] for f in train_features],
+                                 dtype=torch.long)
+  # true label
+  all_start_positions = torch.tensor(
+    [f['start_position'] for f in train_features], dtype=torch.long)
+  all_end_positions = torch.tensor([f['end_position'] for f in train_features],
+                                   dtype=torch.long)
+  train_data = TensorDataset(all_input_ids, all_input_mask, all_segment_ids,
+                             all_start_positions, all_end_positions)
+  train_dataloader = DataLoader(train_data, batch_size=config.n_batch,
+                                shuffle=True)
+  ############################################################################
+  ############################################################################
+  ############################################################################
+  return tokenizer, train_dataloader
+
+
 # def test_entry():
 #   with open(config.dev_eval_file, "r") as fh:
 #     dev_eval_file = json.load(fh)
@@ -433,7 +414,7 @@ def main():
   # parser.add_argument("--mode", action="store", dest="mode", default="train",
   #                     help="train/test/debug")
   # pargs = parser.parse_args()
-  mode = config.mode # pargs.mode
+  mode = config.mode
   logger.info("Current device is {}".format(device))
   if mode == "train":
     train_entry()
