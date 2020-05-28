@@ -68,7 +68,7 @@ class EMA(object):
       self.shadows[name] = new_shadow.to('cpu').clone()
 
 @fn_timer(logger)
-def train(model, optimizer, scheduler, ema, train_dataloader, start_step, steps_num, epoch):
+def train(model, optimizer, scheduler, ema, train_dataloader, tokenizer, start_step, steps_num, epoch):
   model.train()
   clamped_losses = []
   origin_losses = []
@@ -109,6 +109,7 @@ def train(model, optimizer, scheduler, ema, train_dataloader, start_step, steps_
       pre_start, pre_end, probabilities = find_max_proper_batch(
         softmax(start_embeddings), softmax(end_embeddings))
       pre_loss = loss
+      cur_res = convert_pre_res(input_ids, pre_start, pre_end, start_positions, end_positions, probabilities, tokenizer)
       # cur_res = dataset.convert_predict_values_with_batch_feature_index(index,
       #                                                           pre_start,
       #                                                           pre_end,
@@ -118,7 +119,7 @@ def train(model, optimizer, scheduler, ema, train_dataloader, start_step, steps_
       logger.info(f"Clamped Loss: {loss}, epoch: {epoch}, step: {step}")
       clamped_losses.append(loss.item())
       loss.backward()
-      # record_info(valid_result=cur_res, epoch=epoch, is_continue=True)
+      record_info(valid_result=cur_res, epoch=epoch, is_continue=True)
       # exact_match_total, f1_total, exact_match, f1 = evaluate_valid_result(cur_res, exact_match_total, f1_total, step + config.batch_size)
       visual_data(model, loss, pre_loss, optimizer, epoch, step, exact_match_total, f1_total, exact_match, f1)
       optimizer.step()
@@ -390,7 +391,7 @@ def train_entry():
   start_index = 0 if not config.is_continue else config.continue_checkpoint
   for epoch in range(config.start_epoch, epochs):
     logger.info(f"Epoch: {epoch}")
-    train(model, optimizer, scheduler, ema, train_dataloader, start_index,
+    train(model, optimizer, scheduler, ema, train_dataloader, tokenizer, start_index,
           get_steps("train", config.mode), epoch)
           # 1, epoch) # todo: debug 完删掉
 

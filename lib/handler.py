@@ -880,3 +880,10 @@ def json2features(input_file, output_files, tokenizer, is_training=False,
 
   print('features num:', len(features))
   json.dump(features, open(output_files[1], 'w'))
+
+
+def convert_pre_res(input_ids, pre_start, pre_end, ori_start, ori_end, probabilities, tokenizer):
+  """"""
+  result = []
+  for input, p_start, p_end, o_start, o_end, proba in zip(input_ids, pre_start, pre_end, ori_start, ori_end, probabilities):
+    tokenizer.c
