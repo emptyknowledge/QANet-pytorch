@@ -59,7 +59,7 @@ char2idx_file = os.path.join(target_dir, "char2idx.json")
 answer_file = os.path.join(answer_dir, "answer.json")
 is_save_features = False
 path_save_feature = "./data/cmrc2018_features"
-is_test_with_test_dev_dataset = False
+is_test_with_test_dev_dataset = True
 
 do_lower_case = True
 

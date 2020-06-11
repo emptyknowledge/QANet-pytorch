@@ -14,6 +14,7 @@ from lib import config
 from lib.Embedding import BertEmbedding
 from torch.utils.data import Dataset
 from lib.handle_data import *
+from lib.handler import *
 from lib.utils import *
 
 def read_data(path):
@@ -130,20 +131,21 @@ class CMRC_QADataSet(Dataset):
   def __init__(self, data_file, is_train, mode="train"):
     self.tokenizer = tokenizer = FullTokenizer(
       vocab_file=cf.vocab_file, do_lower_case=cf.do_lower_case)
-    self.examples = read_squad_examples(data_file, is_train)
+    self.examples = convert2example(data_file, is_train)
     self.mode = mode
     if self.mode == "debug":
       self.examples = self.examples[:10]
     if config.data_size:
       self.examples = self.examples[:int(len(self.examples) * config.data_size) + 1]
-    self.input_features = convert_examples_to_features(
-        examples=self.examples,
-        tokenizer=tokenizer,
-        max_seq_length=cf.context_length_limit,
-        doc_stride=cf.doc_stride,
-        max_query_length=cf.ques_length_limit,
-        is_training=True,
-        output_fn=None)
+    # self.input_features = convert_examples_to_features(
+    #     examples=self.examples,
+    #     tokenizer=tokenizer,
+    #     max_seq_length=cf.context_length_limit,
+    #     doc_stride=cf.doc_stride,
+    #     max_query_length=cf.ques_length_limit,
+    #     is_training=True,
+    #     output_fn=None)
+    self.input_features = convert2feature(self.examples, tokenizer)
     self.input_features = np.asarray(self.input_features, dtype=np.object)
     self.features_size = len(self.input_features)
     self.idx = [i for i in range(self.features_size)]

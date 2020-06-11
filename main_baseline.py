@@ -20,7 +20,7 @@ from torch.utils.data import Dataset
 from lib.QADataSet import read_data
 import argparse
 from lib.config import logger
-
+from lib.tokenization import FullTokenizer
 from lib.QADataSet import QADataSet
 from lib.handler import *
 from lib.utils import *
@@ -72,8 +72,9 @@ class EMA(object):
       self.shadows[name] = new_shadow.to('cpu').clone()
 
 @fn_timer(logger)
-def train(model, optimizer, scheduler, ema, train_dataloader, tokenizer, start_step, steps_num, epoch):
+def train(model, optimizer, scheduler, ema, bert_config, start_step, steps_num, epoch):
   model.train()
+  tokenizer, train_dataloader = load_data(bert_config)
   clamped_losses = []
   origin_losses = []
   exact_match_total = 0
@@ -111,8 +112,8 @@ def train(model, optimizer, scheduler, ema, train_dataloader, tokenizer, start_s
       clamped_losses.append(loss.item())
       loss.backward()
       record_info(valid_result=cur_res, epoch=epoch, is_continue=True)
-      exact_match_total, f1_total, exact_match, f1 = evaluate_valid_result(cur_res, exact_match_total, f1_total, step + config.batch_size)
-      visual_data(model, loss, pre_loss, optimizer, epoch, step, exact_match_total, f1_total, exact_match, f1)
+      exact_match_total, f1_total, exact_match, f1 = evaluate_valid_result(cur_res, exact_match_total, f1_total, (step+1) * config.n_batch)
+      visual_data(model, loss, pre_loss, optimizer, epoch, step, exact_match_total, f1_total, exact_match, f1, label="train")
       optimizer.step()
       scheduler.step()
       if config.use_ema:
@@ -144,7 +145,7 @@ def cal_pre_loss(pre_start, pre_end, start_positions, end_positions,
 
 
 @fn_timer(logger)
-def visual_data(model, loss, pre_loss, optimizer, epoch, step, exact_match_total, f1_total, exact_match, f1):
+def visual_data(model, loss, pre_loss, optimizer, epoch, step, exact_match_total, f1_total, exact_match, f1, label="train"):
   """
   可视化数据
   Args:
@@ -159,17 +160,17 @@ def visual_data(model, loss, pre_loss, optimizer, epoch, step, exact_match_total
   if config.visual_gradient:
     gradient = get_gradient(model)
     gradient = transfer_multi_layer_dict(gradient)
-    visual_tensorboard(config.visual_gradient_dir, "gradient", gradient, epoch, step)
+    visual_tensorboard(config.visual_gradient_dir, f"{label}_gradient", gradient, epoch, step)
   if config.visual_parameter:
     parameter_values = get_parameter_values(model)
     parameter_values = transfer_multi_layer_dict(parameter_values)
-    visual_tensorboard(config.visual_parameter_dir, "parameter_values", parameter_values, epoch, step)
+    visual_tensorboard(config.visual_parameter_dir, f"{label}_parameter_values", parameter_values, epoch, step)
   if config.visual_loss:
-    visual_tensorboard(config.visual_loss_dir, "loss", {"loss": [loss.item()]}, epoch, step)
+    visual_tensorboard(config.visual_loss_dir, f"{label}_loss", {"loss": [loss.item()]}, epoch, step)
   if config.visual_optimizer:
-    visual_tensorboard(config.visual_optimizer_dir, "optimizer", process_optimizer_info(optimizer), epoch, step)
+    visual_tensorboard(config.visual_optimizer_dir, f"{label}_optimizer", process_optimizer_info(optimizer), epoch, step)
   if config.visual_valid_result:
-    visual_tensorboard(config.visual_valid_result_dir, "valid", {
+    visual_tensorboard(config.visual_valid_result_dir, f"{label}_valid", {
       "exact_match_total": [exact_match_total],
       "exact_match": [exact_match],
       "f1_total": [f1_total],
@@ -187,39 +188,39 @@ def process_optimizer_info(optimizer):
   return result
 
 @fn_timer(logger)
-def valid(model, dataset, epoch=0):
+def valid(model, bert_config, epoch=0):
   model.eval()
   valid_result = []
   losses = []
   logger.info("start valid:")
-  losses, metrics = test_model(dataset, losses, model, valid_result, dataset_type="valid")
-  record_info(losses, f1=[metrics["f1"]], em=[metrics["exact_match"]],
-              valid_result=valid_result,
+
+  loss, extract_match, f1 = test_model(bert_config, losses, model, valid_result, epoch, label="valid")
+  record_info(loss, f1=f1, em=extract_match,
+              # valid_result=valid_result,
               epoch=epoch,
               r_type="valid")
-  logger.info("VALID loss {:8f} F1 {:8f} EM {:8f}\n".format(metrics["loss"], metrics["f1"],
-                                                            metrics["exact_match"]))
+  logger.info("VALID loss {:8f} F1 {:8f} EM {:8f}\n".format(loss, f1,
+                                                            extract_match))
 
 
-def test_model(dataset, losses, model, valid_result, dataset_type="valid"):
-  steps = min(get_steps(dataset_type, config.mode), dataset.features_size)
+def test_model(bert_config, losses, model, valid_result, epoch, label="valid"):
   logger.info("start_step test or valid:")
+  tokenizer, dev_dataloader = load_data(bert_config, config.dev_dir1)
   softmax = torch.nn.Softmax(dim=-1)
   log_sofmax = torch.nn.LogSoftmax(dim=-1)
-  # valid_result = []
+  exact_match_total = 0
+  f1_total = 0
+  exact_match = 0
+  f1 = 0
   with torch.no_grad():
-    for step in tqdm(range(0, steps, config.batch_size), total=steps):
-      input_ids, input_mask, input_span_mask, segment_ids, start_positions, end_positions, index = dataset.get(
-        step, config.batch_size)
-      input_ids, input_mask, input_span_mask, segment_ids = input_ids.to(device), input_mask.to(
-        device), input_span_mask.to(device), segment_ids.to(device)
-      start_positions, end_positions = start_positions.to(
-        device), end_positions.to(device)
-      input_mask = input_mask.float()
+    for step, batch in enumerate(dev_dataloader):
+      batch = tuple(t.to(device) for t in batch)
+      input_ids, input_mask, segment_ids, start_positions, end_positions = batch
+
       start_embeddings, end_embeddings = model(input_ids, input_mask,
                                                segment_ids)
-      start_embeddings = mask(start_embeddings, input_span_mask, -1)
-      end_embeddings = mask(end_embeddings, input_span_mask, -1)
+      # start_embeddings = mask(start_embeddings, input_span_mask, -1)
+      # end_embeddings = mask(end_embeddings, input_span_mask, -1)
       loss1 = F.nll_loss(log_sofmax(start_embeddings), start_positions,
                          reduction='mean')
       loss2 = F.nll_loss(log_sofmax(end_embeddings), end_positions,
@@ -229,18 +230,16 @@ def test_model(dataset, losses, model, valid_result, dataset_type="valid"):
       losses.append(loss.item())
       pre_start, pre_end, probabilities = find_max_proper_batch(
         softmax(start_embeddings), softmax(end_embeddings))
-      valid_result.extend(
-        dataset.convert_predict_values_with_batch_feature_index(index,
-                                                                pre_start,
-                                                                pre_end,
-                                                                probabilities)
-      )
-      # valid_result.extend(
-      #   convert_valid_result(Cwid, Qwid, y1, y2, pre_start, pre_end, dataset, ids))
+      cur_res = convert_pre_res(input_ids, pre_start, pre_end, start_positions,
+                                end_positions, probabilities, tokenizer)
+      record_info(valid_result=cur_res, epoch=epoch, is_continue=True, r_type=label)
+      visual_data(model, loss, loss, None, epoch, step,
+                  exact_match_total, f1_total, exact_match, f1, label=label)
+
   loss = np.mean(losses)
-  metrics = evaluate_valid_result(valid_result)
-  metrics["loss"] = loss
-  return losses, metrics
+  exact_match_total, f1_total, exact_match, f1 = evaluate_valid_result(valid_result, 0, 0, len(dev_dataloader.dataset))
+  # metrics["loss"] = loss
+  return loss, exact_match, f1
 
 
 @fn_timer(logger)
@@ -249,13 +248,14 @@ def test(model, dataset, epoch=0):
   losses = []
   valid_result = []
   print("start test:")
-  losses, metrics = test_model(dataset, losses, model, valid_result, dataset_type="test")
-  record_info(losses,f1=[metrics["f1"]], em=[metrics["exact_match"]],
-              valid_result=valid_result, epoch=epoch,
+  loss, extract_match, f1 = test_model(dataset, losses, model, valid_result, label="test")
+  record_info(loss,f1=f1, em=extract_match,
+              # valid_result=valid_result,
+              epoch=epoch,
               r_type="test")
-  print("TEST loss {:8f} F1 {:8f} EM {:8f}\n".format(metrics["loss"], metrics["f1"],
-                                                     metrics["exact_match"]))
-  return metrics
+  print("TEST loss {:8f} F1 {:8f} EM {:8f}\n".format(loss, f1,
+                                                     extract_match))
+  return 
 
 @fn_timer(logger)
 def classify(model, dataset):
@@ -306,7 +306,7 @@ def record_features(dataset):
 def train_entry():
   logger.info("Building model...")
   bert_config = BertConfig.from_json_file(config.bert_config)
-  tokenizer, train_dataloader = load_data(bert_config)
+
   lr = config.learning_rate
   # num_train_steps = int(train_dataset.features_size/ config.batch_size * config.epochs)
   # warm_up = int(num_train_steps * config.warmup_proportion)
@@ -324,25 +324,22 @@ def train_entry():
   start_index = 0 if not config.is_continue else config.continue_checkpoint
   for epoch in range(config.start_epoch, epochs):
     logger.info(f"Epoch: {epoch}")
-    train(model, optimizer, scheduler, ema, train_dataloader, tokenizer, start_index,
+    train(model, optimizer, scheduler, ema, bert_config, start_index,
           get_steps("train", config.mode), epoch)
-          # 1, epoch) # todo: debug 完删掉
 
-    # if config.is_test_with_test_dev_dataset:
-    #   valid(model, dev_dataset, epoch)
-    #   metrics = test(model, trial_dataset, epoch)
-    #   logger.info("Learning rate: {}".format(scheduler.get_lr()))
-    #   dev_f1 = metrics["f1"]
-    #   dev_em = metrics["exact_match"]
-    #   if dev_f1 < best_f1 and dev_em < best_em:
-    #     patience += 1
-    #     if patience > config.early_stop: break
-    #   else:
-    #     patience = 0
-    #     best_f1 = max(best_f1, dev_f1)
-    #     best_em = max(best_em, dev_em)
-    # start_index = 0
-    # train_dataset.shuffle()
+    if config.is_test_with_test_dev_dataset:
+      valid(model, bert_config, epoch)
+      metrics = test(model, bert_config, epoch)
+      # logger.info("Learning rate: {}".format(scheduler.get_lr()))
+      # dev_f1 = metrics["f1"]
+      # dev_em = metrics["exact_match"]
+      # if dev_f1 < best_f1 and dev_em < best_em:
+      #   patience += 1
+      #   if patience > config.early_stop: break
+      # else:
+      #   patience = 0
+      #   best_f1 = max(best_f1, dev_f1)
+      #   best_em = max(best_em, dev_em)
 
 
 def get_model_trainabel_param(ema, model):
@@ -352,12 +349,14 @@ def get_model_trainabel_param(ema, model):
   return params
 
 
-def load_data(bert_config):
+def load_data(bert_config, feature_path=config.train_dir):
   ############################################################################
   # load data for bert cn finetune
   ############################################################################
-  tokenizer = tokenization.BertTokenizer(vocab_file=config.vocab_file,
-                                         do_lower_case=True)
+  # tokenizer = tokenization.BertTokenizer(vocab_file=config.vocab_file,
+  #                                        do_lower_case=True)
+  tokenizer = FullTokenizer(
+    vocab_file=config.vocab_file, do_lower_case=config.do_lower_case)
   if not os.path.exists(config.train_dir):
     json2features(config.train_file,
                   [config.train_dir.replace('_features_', '_examples_'),
@@ -369,7 +368,7 @@ def load_data(bert_config):
                   tokenizer,
                   is_training=False,
                   max_seq_length=bert_config.max_position_embeddings)
-  train_features = json.load(open(config.train_dir, 'r'))
+  train_features = json.load(open(feature_path, 'r'))
   # dev_examples = json.load(open(config.dev_dir1, 'r'))
   # dev_features = json.load(open(config.dev_dir2, 'r'))
   all_input_ids = torch.tensor([f['input_ids'] for f in train_features],
